@@ -24,7 +24,7 @@ BEGIN
     SET NOCOUNT ON;
     SET XACT_ABORT ON;
 
-    DECLARE @ResponseCode INT = 0, @ResponseMessage NVARCHAR(400) = N'OK';
+    DECLARE @ResponseCode INT = 200, @ResponseMessage NVARCHAR(400) = N'OK';
 
     BEGIN TRY
         SELECT  CategoryId, Name, Slug, SortOrder
@@ -35,7 +35,7 @@ BEGIN
     BEGIN CATCH
         INSERT INTO dbo.ErrorLog (ProcedureName, ErrorNumber, ErrorMessage, ErrorLine, ErrorSeverity)
         VALUES (ERROR_PROCEDURE(), ERROR_NUMBER(), ERROR_MESSAGE(), ERROR_LINE(), ERROR_SEVERITY());
-        SELECT @ResponseCode = 9001, @ResponseMessage = N'Could not load categories. Please try again.';
+        SELECT @ResponseCode = 500, @ResponseMessage = N'Could not load categories. Please try again.';
     END CATCH
 
     SELECT @ResponseCode AS ResponseCode, @ResponseMessage AS ResponseMessage;
@@ -48,7 +48,7 @@ BEGIN
     SET NOCOUNT ON;
     SET XACT_ABORT ON;
 
-    DECLARE @ResponseCode INT = 0, @ResponseMessage NVARCHAR(400) = N'OK';
+    DECLARE @ResponseCode INT = 200, @ResponseMessage NVARCHAR(400) = N'OK';
 
     BEGIN TRY
         SELECT  SwatchId, Name, ColorValue, Weave, ImagePath, SortOrder
@@ -59,7 +59,7 @@ BEGIN
     BEGIN CATCH
         INSERT INTO dbo.ErrorLog (ProcedureName, ErrorNumber, ErrorMessage, ErrorLine, ErrorSeverity)
         VALUES (ERROR_PROCEDURE(), ERROR_NUMBER(), ERROR_MESSAGE(), ERROR_LINE(), ERROR_SEVERITY());
-        SELECT @ResponseCode = 9001, @ResponseMessage = N'Could not load the cloth palette. Please try again.';
+        SELECT @ResponseCode = 500, @ResponseMessage = N'Could not load the cloth palette. Please try again.';
     END CATCH
 
     SELECT @ResponseCode AS ResponseCode, @ResponseMessage AS ResponseMessage;
@@ -72,7 +72,7 @@ BEGIN
     SET NOCOUNT ON;
     SET XACT_ABORT ON;
 
-    DECLARE @ResponseCode INT = 0, @ResponseMessage NVARCHAR(400) = N'OK';
+    DECLARE @ResponseCode INT = 200, @ResponseMessage NVARCHAR(400) = N'OK';
 
     BEGIN TRY
         SELECT BedSizeCode, Name, PriceAdjustment, SortOrder
@@ -82,7 +82,7 @@ BEGIN
     BEGIN CATCH
         INSERT INTO dbo.ErrorLog (ProcedureName, ErrorNumber, ErrorMessage, ErrorLine, ErrorSeverity)
         VALUES (ERROR_PROCEDURE(), ERROR_NUMBER(), ERROR_MESSAGE(), ERROR_LINE(), ERROR_SEVERITY());
-        SELECT @ResponseCode = 9001, @ResponseMessage = N'Could not load bed sizes. Please try again.';
+        SELECT @ResponseCode = 500, @ResponseMessage = N'Could not load bed sizes. Please try again.';
     END CATCH
 
     SELECT @ResponseCode AS ResponseCode, @ResponseMessage AS ResponseMessage;
@@ -107,7 +107,7 @@ BEGIN
     SET NOCOUNT ON;
     SET XACT_ABORT ON;
 
-    DECLARE @ResponseCode INT = 0, @ResponseMessage NVARCHAR(400) = N'OK';
+    DECLARE @ResponseCode INT = 200, @ResponseMessage NVARCHAR(400) = N'OK';
     DECLARE @Total INT = 0;
 
     CREATE TABLE #Page (
@@ -121,21 +121,21 @@ BEGIN
     BEGIN TRY
         /* --- validate ------------------------------------------------- */
         IF @Page IS NULL OR @Page < 1
-            SELECT @ResponseCode = 1002, @ResponseMessage = N'Page must be 1 or more.';
+            SELECT @ResponseCode = 400, @ResponseMessage = N'Page must be 1 or more.';
         ELSE IF @PageSize IS NULL OR @PageSize < 1 OR @PageSize > 100
-            SELECT @ResponseCode = 1002, @ResponseMessage = N'Page size must be between 1 and 100.';
+            SELECT @ResponseCode = 400, @ResponseMessage = N'Page size must be between 1 and 100.';
         ELSE IF LEN(ISNULL(@Search, N'')) > 128
-            SELECT @ResponseCode = 1004, @ResponseMessage = N'Search text is too long.';
+            SELECT @ResponseCode = 400, @ResponseMessage = N'Search text is too long.';
         /*  @SortBy is compared against a closed list rather than being
             concatenated into the query. It never reaches the SQL text, so a
             hostile value is simply rejected — there is nothing to inject into. */
         ELSE IF @SortBy NOT IN (N'Featured', N'PriceAsc', N'PriceDesc', N'Newest', N'Name')
-            SELECT @ResponseCode = 1003, @ResponseMessage = N'Unknown sort order.';
+            SELECT @ResponseCode = 400, @ResponseMessage = N'Unknown sort order.';
         ELSE IF @CategorySlug IS NOT NULL
                 AND NOT EXISTS (SELECT 1 FROM dbo.Categories WHERE Slug = @CategorySlug AND IsActive = 1)
-            SELECT @ResponseCode = 2001, @ResponseMessage = N'That category does not exist.';
+            SELECT @ResponseCode = 404, @ResponseMessage = N'That category does not exist.';
 
-        IF @ResponseCode = 0
+        IF @ResponseCode = 200
         BEGIN
             DECLARE @SearchPattern NVARCHAR(140) = NULL;
             IF NULLIF(LTRIM(RTRIM(@Search)), N'') IS NOT NULL
@@ -188,7 +188,7 @@ BEGIN
         DELETE FROM #Page;
         INSERT INTO dbo.ErrorLog (ProcedureName, ErrorNumber, ErrorMessage, ErrorLine, ErrorSeverity)
         VALUES (ERROR_PROCEDURE(), ERROR_NUMBER(), ERROR_MESSAGE(), ERROR_LINE(), ERROR_SEVERITY());
-        SELECT @ResponseCode = 9001, @ResponseMessage = N'Could not load products. Please try again.';
+        SELECT @ResponseCode = 500, @ResponseMessage = N'Could not load products. Please try again.';
     END CATCH
 
     /* --- single exit: fixed shape, always ------------------------------ */
@@ -219,16 +219,16 @@ BEGIN
     SET NOCOUNT ON;
     SET XACT_ABORT ON;
 
-    DECLARE @ResponseCode INT = 0, @ResponseMessage NVARCHAR(400) = N'OK';
+    DECLARE @ResponseCode INT = 200, @ResponseMessage NVARCHAR(400) = N'OK';
     DECLARE @FoundId INT = NULL, @CategoryId INT = NULL;
 
     BEGIN TRY
         IF @ProductId IS NULL AND NULLIF(LTRIM(RTRIM(@Slug)), N'') IS NULL
-            SELECT @ResponseCode = 1001, @ResponseMessage = N'A product id or slug is required.';
+            SELECT @ResponseCode = 400, @ResponseMessage = N'A product id or slug is required.';
         ELSE IF @ProductId IS NOT NULL AND @ProductId <= 0
-            SELECT @ResponseCode = 1002, @ResponseMessage = N'Product id must be a positive number.';
+            SELECT @ResponseCode = 400, @ResponseMessage = N'Product id must be a positive number.';
 
-        IF @ResponseCode = 0
+        IF @ResponseCode = 200
         BEGIN
             SELECT @FoundId = p.ProductId, @CategoryId = p.CategoryId
             FROM   dbo.Products AS p
@@ -237,14 +237,14 @@ BEGIN
               AND  (@IncludeInactive = 1 OR p.IsActive = 1);
 
             IF @FoundId IS NULL
-                SELECT @ResponseCode = 2001, @ResponseMessage = N'That product is no longer in the shop.';
+                SELECT @ResponseCode = 404, @ResponseMessage = N'That product is no longer in the shop.';
         END
     END TRY
     BEGIN CATCH
         SET @FoundId = NULL;
         INSERT INTO dbo.ErrorLog (ProcedureName, ErrorNumber, ErrorMessage, ErrorLine, ErrorSeverity)
         VALUES (ERROR_PROCEDURE(), ERROR_NUMBER(), ERROR_MESSAGE(), ERROR_LINE(), ERROR_SEVERITY());
-        SELECT @ResponseCode = 9001, @ResponseMessage = N'Could not load that product. Please try again.';
+        SELECT @ResponseCode = 500, @ResponseMessage = N'Could not load that product. Please try again.';
     END CATCH
 
     /*  1 — the product (empty when not found)                              */
@@ -298,7 +298,7 @@ BEGIN
     SET NOCOUNT ON;
     SET XACT_ABORT ON;
 
-    DECLARE @ResponseCode INT = 0, @ResponseMessage NVARCHAR(400) = N'OK';
+    DECLARE @ResponseCode INT = 200, @ResponseMessage NVARCHAR(400) = N'OK';
     DECLARE @NewId INT = NULL, @Slug NVARCHAR(160);
 
     BEGIN TRY
@@ -306,29 +306,29 @@ BEGIN
             The API is one caller; this is the last line that cannot be
             bypassed by a script, a migration or a person with sqlcmd.        */
         IF NULLIF(LTRIM(RTRIM(@Name)), N'') IS NULL
-            SELECT @ResponseCode = 1001, @ResponseMessage = N'Product name is required.';
+            SELECT @ResponseCode = 400, @ResponseMessage = N'Product name is required.';
         ELSE IF LEN(@Name) > 128
-            SELECT @ResponseCode = 1004, @ResponseMessage = N'Product name must be 128 characters or fewer.';
+            SELECT @ResponseCode = 400, @ResponseMessage = N'Product name must be 128 characters or fewer.';
         ELSE IF @CategoryId IS NULL OR NOT EXISTS (SELECT 1 FROM dbo.Categories WHERE CategoryId = @CategoryId AND IsActive = 1)
-            SELECT @ResponseCode = 2001, @ResponseMessage = N'Pick a valid category.';
+            SELECT @ResponseCode = 404, @ResponseMessage = N'Pick a valid category.';
         ELSE IF @Price IS NULL OR @Price < 0 OR @Price > 10000000
-            SELECT @ResponseCode = 1002, @ResponseMessage = N'Price must be between Rs 0 and Rs 10,000,000.';
+            SELECT @ResponseCode = 400, @ResponseMessage = N'Price must be between Rs 0 and Rs 10,000,000.';
         ELSE IF @Stock IS NULL OR @Stock < 0 OR @Stock > 100000
-            SELECT @ResponseCode = 1002, @ResponseMessage = N'Stock must be between 0 and 100,000.';
+            SELECT @ResponseCode = 400, @ResponseMessage = N'Stock must be between 0 and 100,000.';
         ELSE IF @StitchingDays IS NULL OR @StitchingDays < 0 OR @StitchingDays > 90
-            SELECT @ResponseCode = 1002, @ResponseMessage = N'Stitching days must be between 0 and 90.';
+            SELECT @ResponseCode = 400, @ResponseMessage = N'Stitching days must be between 0 and 90.';
         ELSE IF @LowStockAt IS NULL OR @LowStockAt < 0 OR @LowStockAt > 100000
-            SELECT @ResponseCode = 1002, @ResponseMessage = N'Low-stock threshold is out of range.';
+            SELECT @ResponseCode = 400, @ResponseMessage = N'Low-stock threshold is out of range.';
         ELSE IF EXISTS (SELECT 1 FROM dbo.Products WHERE Name = @Name)
-            SELECT @ResponseCode = 3002, @ResponseMessage = N'A product with that name already exists.';
+            SELECT @ResponseCode = 409, @ResponseMessage = N'A product with that name already exists.';
         ELSE IF @DefaultSwatchId IS NOT NULL
                 AND NOT EXISTS (SELECT 1 FROM dbo.Swatches WHERE SwatchId = @DefaultSwatchId AND IsActive = 1)
-            SELECT @ResponseCode = 2004, @ResponseMessage = N'That cloth is not in the shop palette.';
+            SELECT @ResponseCode = 404, @ResponseMessage = N'That cloth is not in the shop palette.';
         ELSE IF EXISTS (SELECT 1 FROM @SwatchIds AS s
                         WHERE NOT EXISTS (SELECT 1 FROM dbo.Swatches AS x WHERE x.SwatchId = s.Value AND x.IsActive = 1))
-            SELECT @ResponseCode = 2004, @ResponseMessage = N'One of the chosen cloths is not in the shop palette.';
+            SELECT @ResponseCode = 404, @ResponseMessage = N'One of the chosen cloths is not in the shop palette.';
 
-        IF @ResponseCode = 0
+        IF @ResponseCode = 200
         BEGIN
             /*  Slug: lower-case, spaces to dashes, punctuation dropped.      */
             SET @Slug = LOWER(LTRIM(RTRIM(@Name)));
@@ -366,7 +366,7 @@ BEGIN
         SET @NewId = NULL;
         INSERT INTO dbo.ErrorLog (ProcedureName, ErrorNumber, ErrorMessage, ErrorLine, ErrorSeverity)
         VALUES (ERROR_PROCEDURE(), ERROR_NUMBER(), ERROR_MESSAGE(), ERROR_LINE(), ERROR_SEVERITY());
-        SELECT @ResponseCode = 9001, @ResponseMessage = N'Could not save the product. Please try again.';
+        SELECT @ResponseCode = 500, @ResponseMessage = N'Could not save the product. Please try again.';
     END CATCH
 
     SELECT @NewId AS ProductId, @Slug AS Slug;
@@ -394,33 +394,33 @@ BEGIN
     SET NOCOUNT ON;
     SET XACT_ABORT ON;
 
-    DECLARE @ResponseCode INT = 0, @ResponseMessage NVARCHAR(400) = N'OK';
+    DECLARE @ResponseCode INT = 200, @ResponseMessage NVARCHAR(400) = N'OK';
 
     BEGIN TRY
         IF @ProductId IS NULL OR @ProductId <= 0
-            SELECT @ResponseCode = 1001, @ResponseMessage = N'Product id is required.';
+            SELECT @ResponseCode = 400, @ResponseMessage = N'Product id is required.';
         ELSE IF NOT EXISTS (SELECT 1 FROM dbo.Products WHERE ProductId = @ProductId)
-            SELECT @ResponseCode = 2001, @ResponseMessage = N'That product no longer exists.';
+            SELECT @ResponseCode = 404, @ResponseMessage = N'That product no longer exists.';
         ELSE IF NULLIF(LTRIM(RTRIM(@Name)), N'') IS NULL
-            SELECT @ResponseCode = 1001, @ResponseMessage = N'Product name is required.';
+            SELECT @ResponseCode = 400, @ResponseMessage = N'Product name is required.';
         ELSE IF LEN(@Name) > 128
-            SELECT @ResponseCode = 1004, @ResponseMessage = N'Product name must be 128 characters or fewer.';
+            SELECT @ResponseCode = 400, @ResponseMessage = N'Product name must be 128 characters or fewer.';
         ELSE IF @CategoryId IS NULL OR NOT EXISTS (SELECT 1 FROM dbo.Categories WHERE CategoryId = @CategoryId AND IsActive = 1)
-            SELECT @ResponseCode = 2001, @ResponseMessage = N'Pick a valid category.';
+            SELECT @ResponseCode = 404, @ResponseMessage = N'Pick a valid category.';
         ELSE IF @Price IS NULL OR @Price < 0 OR @Price > 10000000
-            SELECT @ResponseCode = 1002, @ResponseMessage = N'Price must be between Rs 0 and Rs 10,000,000.';
+            SELECT @ResponseCode = 400, @ResponseMessage = N'Price must be between Rs 0 and Rs 10,000,000.';
         ELSE IF @StitchingDays IS NULL OR @StitchingDays < 0 OR @StitchingDays > 90
-            SELECT @ResponseCode = 1002, @ResponseMessage = N'Stitching days must be between 0 and 90.';
+            SELECT @ResponseCode = 400, @ResponseMessage = N'Stitching days must be between 0 and 90.';
         ELSE IF EXISTS (SELECT 1 FROM dbo.Products WHERE Name = @Name AND ProductId <> @ProductId)
-            SELECT @ResponseCode = 3002, @ResponseMessage = N'Another product already uses that name.';
+            SELECT @ResponseCode = 409, @ResponseMessage = N'Another product already uses that name.';
         ELSE IF @DefaultSwatchId IS NOT NULL
                 AND NOT EXISTS (SELECT 1 FROM dbo.Swatches WHERE SwatchId = @DefaultSwatchId AND IsActive = 1)
-            SELECT @ResponseCode = 2004, @ResponseMessage = N'That cloth is not in the shop palette.';
+            SELECT @ResponseCode = 404, @ResponseMessage = N'That cloth is not in the shop palette.';
         ELSE IF EXISTS (SELECT 1 FROM @SwatchIds AS s
                         WHERE NOT EXISTS (SELECT 1 FROM dbo.Swatches AS x WHERE x.SwatchId = s.Value AND x.IsActive = 1))
-            SELECT @ResponseCode = 2004, @ResponseMessage = N'One of the chosen cloths is not in the shop palette.';
+            SELECT @ResponseCode = 404, @ResponseMessage = N'One of the chosen cloths is not in the shop palette.';
 
-        IF @ResponseCode = 0
+        IF @ResponseCode = 200
         BEGIN
             BEGIN TRANSACTION;
 
@@ -449,7 +449,7 @@ BEGIN
         IF XACT_STATE() <> 0 ROLLBACK TRANSACTION;
         INSERT INTO dbo.ErrorLog (ProcedureName, ErrorNumber, ErrorMessage, ErrorLine, ErrorSeverity)
         VALUES (ERROR_PROCEDURE(), ERROR_NUMBER(), ERROR_MESSAGE(), ERROR_LINE(), ERROR_SEVERITY());
-        SELECT @ResponseCode = 9001, @ResponseMessage = N'Could not save the product. Please try again.';
+        SELECT @ResponseCode = 500, @ResponseMessage = N'Could not save the product. Please try again.';
     END CATCH
 
     SELECT @ResponseCode AS ResponseCode, @ResponseMessage AS ResponseMessage;
@@ -466,19 +466,19 @@ BEGIN
     SET NOCOUNT ON;
     SET XACT_ABORT ON;
 
-    DECLARE @ResponseCode INT = 0, @ResponseMessage NVARCHAR(400) = N'OK';
+    DECLARE @ResponseCode INT = 200, @ResponseMessage NVARCHAR(400) = N'OK';
 
     BEGIN TRY
         IF @ProductId IS NULL OR @ProductId <= 0
-            SELECT @ResponseCode = 1001, @ResponseMessage = N'Product id is required.';
+            SELECT @ResponseCode = 400, @ResponseMessage = N'Product id is required.';
         ELSE IF NOT EXISTS (SELECT 1 FROM dbo.Products WHERE ProductId = @ProductId)
-            SELECT @ResponseCode = 2001, @ResponseMessage = N'That product no longer exists.';
+            SELECT @ResponseCode = 404, @ResponseMessage = N'That product no longer exists.';
         ELSE IF EXISTS (SELECT 1 FROM dbo.OrderLines WHERE ProductId = @ProductId)
         BEGIN
             /*  Not an error the shopkeeper can fix by trying again — tell them
                 what actually happens instead, and do it.                     */
             UPDATE dbo.Products SET IsActive = 0, UpdatedAt = SYSUTCDATETIME() WHERE ProductId = @ProductId;
-            SELECT @ResponseCode = 0,
+            SELECT @ResponseCode = 200,
                    @ResponseMessage = N'This product is on past orders, so it was hidden from the shop rather than deleted.';
         END
         ELSE
@@ -491,7 +491,7 @@ BEGIN
         IF XACT_STATE() <> 0 ROLLBACK TRANSACTION;
         INSERT INTO dbo.ErrorLog (ProcedureName, ErrorNumber, ErrorMessage, ErrorLine, ErrorSeverity)
         VALUES (ERROR_PROCEDURE(), ERROR_NUMBER(), ERROR_MESSAGE(), ERROR_LINE(), ERROR_SEVERITY());
-        SELECT @ResponseCode = 9001, @ResponseMessage = N'Could not remove the product. Please try again.';
+        SELECT @ResponseCode = 500, @ResponseMessage = N'Could not remove the product. Please try again.';
     END CATCH
 
     SELECT @ResponseCode AS ResponseCode, @ResponseMessage AS ResponseMessage;

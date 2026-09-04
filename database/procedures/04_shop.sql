@@ -19,23 +19,23 @@ BEGIN
     SET NOCOUNT ON;
     SET XACT_ABORT ON;
 
-    DECLARE @ResponseCode INT = 0, @ResponseMessage NVARCHAR(400) = N'OK';
+    DECLARE @ResponseCode INT = 200, @ResponseMessage NVARCHAR(400) = N'OK';
 
     BEGIN TRY
         IF NOT EXISTS (SELECT 1 FROM dbo.ShopSettings WHERE ShopSettingsId = 1)
-            SELECT @ResponseCode = 2005, @ResponseMessage = N'The shop is not set up yet.';
+            SELECT @ResponseCode = 404, @ResponseMessage = N'The shop is not set up yet.';
     END TRY
     BEGIN CATCH
         INSERT INTO dbo.ErrorLog (ProcedureName, ErrorNumber, ErrorMessage, ErrorLine, ErrorSeverity)
         VALUES (ERROR_PROCEDURE(), ERROR_NUMBER(), ERROR_MESSAGE(), ERROR_LINE(), ERROR_SEVERITY());
-        SELECT @ResponseCode = 9001, @ResponseMessage = N'Could not load the shop details. Please try again.';
+        SELECT @ResponseCode = 500, @ResponseMessage = N'Could not load the shop details. Please try again.';
     END CATCH
 
     SELECT  ShopName, City, AddressLine, WhatsAppNumber, BannerText, OpeningHours,
             DeliveryCharge, FreeDeliveryThreshold,
             CashOnDeliveryEnabled, WhatsAppOrdersEnabled, ReserveInShopEnabled, CardPaymentEnabled
     FROM    dbo.ShopSettings
-    WHERE   ShopSettingsId = 1 AND @ResponseCode = 0;
+    WHERE   ShopSettingsId = 1 AND @ResponseCode = 200;
 
     SELECT @ResponseCode AS ResponseCode, @ResponseMessage AS ResponseMessage;
 END
@@ -47,16 +47,16 @@ BEGIN
     SET NOCOUNT ON;
     SET XACT_ABORT ON;
 
-    DECLARE @ResponseCode INT = 0, @ResponseMessage NVARCHAR(400) = N'OK';
+    DECLARE @ResponseCode INT = 200, @ResponseMessage NVARCHAR(400) = N'OK';
 
     BEGIN TRY
         IF NOT EXISTS (SELECT 1 FROM dbo.ShopSettings WHERE ShopSettingsId = 1)
-            SELECT @ResponseCode = 2005, @ResponseMessage = N'The shop is not set up yet.';
+            SELECT @ResponseCode = 404, @ResponseMessage = N'The shop is not set up yet.';
     END TRY
     BEGIN CATCH
         INSERT INTO dbo.ErrorLog (ProcedureName, ErrorNumber, ErrorMessage, ErrorLine, ErrorSeverity)
         VALUES (ERROR_PROCEDURE(), ERROR_NUMBER(), ERROR_MESSAGE(), ERROR_LINE(), ERROR_SEVERITY());
-        SELECT @ResponseCode = 9001, @ResponseMessage = N'Could not load settings. Please try again.';
+        SELECT @ResponseCode = 500, @ResponseMessage = N'Could not load settings. Please try again.';
     END CATCH
 
     SELECT  s.ShopSettingsId, s.ShopName, s.City, s.AddressLine, s.WhatsAppNumber, s.BannerText,
@@ -65,7 +65,7 @@ BEGIN
             s.CardPaymentEnabled, s.UpdatedAt, u.FullName AS UpdatedBy
     FROM    dbo.ShopSettings AS s
     LEFT JOIN dbo.Users AS u ON u.Id = s.UpdatedByUserId
-    WHERE   s.ShopSettingsId = 1 AND @ResponseCode = 0;
+    WHERE   s.ShopSettingsId = 1 AND @ResponseCode = 200;
 
     SELECT @ResponseCode AS ResponseCode, @ResponseMessage AS ResponseMessage;
 END
@@ -90,40 +90,40 @@ BEGIN
     SET NOCOUNT ON;
     SET XACT_ABORT ON;
 
-    DECLARE @ResponseCode INT = 0, @ResponseMessage NVARCHAR(400) = N'OK';
+    DECLARE @ResponseCode INT = 200, @ResponseMessage NVARCHAR(400) = N'OK';
     DECLARE @NormalisedWhatsApp NVARCHAR(20);
 
     BEGIN TRY
         IF NULLIF(LTRIM(RTRIM(@ShopName)), N'') IS NULL
-            SELECT @ResponseCode = 1001, @ResponseMessage = N'The shop needs a name.';
+            SELECT @ResponseCode = 400, @ResponseMessage = N'The shop needs a name.';
         ELSE IF LEN(@ShopName) > 128
-            SELECT @ResponseCode = 1004, @ResponseMessage = N'That shop name is too long.';
+            SELECT @ResponseCode = 400, @ResponseMessage = N'That shop name is too long.';
         ELSE IF NULLIF(LTRIM(RTRIM(@City)), N'') IS NULL
-            SELECT @ResponseCode = 1001, @ResponseMessage = N'City is required.';
+            SELECT @ResponseCode = 400, @ResponseMessage = N'City is required.';
         ELSE IF NULLIF(LTRIM(RTRIM(@AddressLine)), N'') IS NULL
-            SELECT @ResponseCode = 1001, @ResponseMessage = N'Address is required.';
+            SELECT @ResponseCode = 400, @ResponseMessage = N'Address is required.';
         ELSE IF @DeliveryCharge IS NULL OR @DeliveryCharge < 0 OR @DeliveryCharge > 100000
-            SELECT @ResponseCode = 1002, @ResponseMessage = N'Delivery charge must be between Rs 0 and Rs 100,000.';
+            SELECT @ResponseCode = 400, @ResponseMessage = N'Delivery charge must be between Rs 0 and Rs 100,000.';
         ELSE IF @FreeDeliveryThreshold IS NULL OR @FreeDeliveryThreshold < 0 OR @FreeDeliveryThreshold > 10000000
-            SELECT @ResponseCode = 1002, @ResponseMessage = N'Free-delivery threshold is out of range.';
+            SELECT @ResponseCode = 400, @ResponseMessage = N'Free-delivery threshold is out of range.';
         /*  Turning off every way to pay would leave a shop that cannot take
             an order — a mistake worth refusing rather than saving.           */
         ELSE IF @CashOnDeliveryEnabled = 0 AND @WhatsAppOrdersEnabled = 0
                 AND @ReserveInShopEnabled = 0 AND @CardPaymentEnabled = 0
-            SELECT @ResponseCode = 3005, @ResponseMessage = N'Leave at least one way for customers to pay.';
+            SELECT @ResponseCode = 409, @ResponseMessage = N'Leave at least one way for customers to pay.';
 
-        IF @ResponseCode = 0
+        IF @ResponseCode = 200
         BEGIN
             SET @NormalisedWhatsApp = REPLACE(REPLACE(REPLACE(REPLACE(
                     ISNULL(@WhatsAppNumber, N''), N' ', N''), N'-', N''), N'(', N''), N')', N'');
             IF LEFT(@NormalisedWhatsApp, 3) = N'+92' SET @NormalisedWhatsApp = N'0' + SUBSTRING(@NormalisedWhatsApp, 4, 20);
 
             IF @NormalisedWhatsApp NOT LIKE N'03[0-9][0-9][0-9][0-9][0-9][0-9][0-9][0-9][0-9]'
-                SELECT @ResponseCode = 1003,
+                SELECT @ResponseCode = 400,
                        @ResponseMessage = N'The WhatsApp number should look like 03xx xxx xxxx.';
         END
 
-        IF @ResponseCode = 0
+        IF @ResponseCode = 200
         BEGIN
             /*  MERGE on the singleton: creates row 1 on a fresh database,
                 updates it thereafter. The CK_ShopSettings_Singleton check
@@ -158,7 +158,7 @@ BEGIN
         IF XACT_STATE() <> 0 ROLLBACK TRANSACTION;
         INSERT INTO dbo.ErrorLog (ProcedureName, ErrorNumber, ErrorMessage, ErrorLine, ErrorSeverity)
         VALUES (ERROR_PROCEDURE(), ERROR_NUMBER(), ERROR_MESSAGE(), ERROR_LINE(), ERROR_SEVERITY());
-        SELECT @ResponseCode = 9001, @ResponseMessage = N'Could not save settings. Please try again.';
+        SELECT @ResponseCode = 500, @ResponseMessage = N'Could not save settings. Please try again.';
     END CATCH
 
     SELECT @ResponseCode AS ResponseCode, @ResponseMessage AS ResponseMessage;
@@ -179,7 +179,7 @@ BEGIN
     SET NOCOUNT ON;
     SET XACT_ABORT ON;
 
-    DECLARE @ResponseCode INT = 0, @ResponseMessage NVARCHAR(400) = N'OK';
+    DECLARE @ResponseCode INT = 200, @ResponseMessage NVARCHAR(400) = N'OK';
 
     SET @Today = ISNULL(@Today, CAST(SYSUTCDATETIME() AS DATE));
 
@@ -226,7 +226,7 @@ BEGIN
     BEGIN CATCH
         INSERT INTO dbo.ErrorLog (ProcedureName, ErrorNumber, ErrorMessage, ErrorLine, ErrorSeverity)
         VALUES (ERROR_PROCEDURE(), ERROR_NUMBER(), ERROR_MESSAGE(), ERROR_LINE(), ERROR_SEVERITY());
-        SELECT @ResponseCode = 9001, @ResponseMessage = N'Could not load the dashboard. Please try again.';
+        SELECT @ResponseCode = 500, @ResponseMessage = N'Could not load the dashboard. Please try again.';
     END CATCH
 
     /*  1 — stat tiles                                                       */

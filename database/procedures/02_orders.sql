@@ -33,7 +33,7 @@ BEGIN
         it open, and the connection goes back to the pool poisoned.           */
     SET XACT_ABORT ON;
 
-    DECLARE @ResponseCode INT = 0, @ResponseMessage NVARCHAR(400) = N'OK';
+    DECLARE @ResponseCode INT = 200, @ResponseMessage NVARCHAR(400) = N'OK';
     DECLARE @OrderId INT = NULL, @Reference NVARCHAR(16) = NULL;
     DECLARE @CustomerId INT, @NormalisedPhone NVARCHAR(20);
     DECLARE @Subtotal DECIMAL(12,2) = 0, @DeliveryCharge DECIMAL(12,2) = 0, @Total DECIMAL(12,2) = 0;
@@ -47,21 +47,21 @@ BEGIN
     BEGIN TRY
         /* ── validate ─────────────────────────────────────────────────── */
         IF NULLIF(LTRIM(RTRIM(@CustomerName)), N'') IS NULL
-            SELECT @ResponseCode = 1001, @ResponseMessage = N'Please tell us your name.';
+            SELECT @ResponseCode = 400, @ResponseMessage = N'Please tell us your name.';
         ELSE IF LEN(@CustomerName) > 128
-            SELECT @ResponseCode = 1004, @ResponseMessage = N'That name is too long.';
+            SELECT @ResponseCode = 400, @ResponseMessage = N'That name is too long.';
         ELSE IF NULLIF(LTRIM(RTRIM(@DeliveryAddress)), N'') IS NULL
-            SELECT @ResponseCode = 1001, @ResponseMessage = N'Please give an address in Rawalpindi.';
+            SELECT @ResponseCode = 400, @ResponseMessage = N'Please give an address in Rawalpindi.';
         ELSE IF LEN(@DeliveryAddress) > 400
-            SELECT @ResponseCode = 1004, @ResponseMessage = N'That address is too long.';
+            SELECT @ResponseCode = 400, @ResponseMessage = N'That address is too long.';
         ELSE IF NOT EXISTS (SELECT 1 FROM @Lines)
-            SELECT @ResponseCode = 1005, @ResponseMessage = N'Your cart is empty.';
+            SELECT @ResponseCode = 400, @ResponseMessage = N'Your cart is empty.';
         ELSE IF EXISTS (SELECT 1 FROM @Lines WHERE Quantity IS NULL OR Quantity <= 0 OR Quantity > 999)
-            SELECT @ResponseCode = 1002, @ResponseMessage = N'Each item needs a quantity between 1 and 999.';
+            SELECT @ResponseCode = 400, @ResponseMessage = N'Each item needs a quantity between 1 and 999.';
 
         /*  Phone: strip spaces and dashes, accept +92 or 0 prefix, store the
             local 03xxxxxxxxx form so one customer is one row.                */
-        IF @ResponseCode = 0
+        IF @ResponseCode = 200
         BEGIN
             SET @NormalisedPhone = REPLACE(REPLACE(REPLACE(REPLACE(
                     ISNULL(@Phone, N''), N' ', N''), N'-', N''), N'(', N''), N')', N'');
@@ -71,16 +71,16 @@ BEGIN
                 SET @NormalisedPhone = N'0' + SUBSTRING(@NormalisedPhone, 3, 20);
 
             IF @NormalisedPhone NOT LIKE N'03[0-9][0-9][0-9][0-9][0-9][0-9][0-9][0-9][0-9]'
-                SELECT @ResponseCode = 1003,
+                SELECT @ResponseCode = 400,
                        @ResponseMessage = N'That phone number does not look right. Use the form 03xx xxx xxxx.';
         END
 
         /*  A payment method the shop has switched off must not be accepted
             just because a stale page still offered it.                       */
-        IF @ResponseCode = 0
+        IF @ResponseCode = 200
         BEGIN
             IF @PaymentMethod NOT IN (N'CashOnDelivery', N'WhatsApp', N'ReserveInShop', N'Card')
-                SELECT @ResponseCode = 1003, @ResponseMessage = N'Choose how you would like to pay.';
+                SELECT @ResponseCode = 400, @ResponseMessage = N'Choose how you would like to pay.';
             ELSE IF NOT EXISTS (
                 SELECT 1 FROM dbo.ShopSettings
                 WHERE ShopSettingsId = 1
@@ -88,10 +88,10 @@ BEGIN
                     OR (@PaymentMethod = N'WhatsApp'       AND WhatsAppOrdersEnabled = 1)
                     OR (@PaymentMethod = N'ReserveInShop'  AND ReserveInShopEnabled  = 1)
                     OR (@PaymentMethod = N'Card'           AND CardPaymentEnabled    = 1)))
-                SELECT @ResponseCode = 3005, @ResponseMessage = N'That payment method is not available right now.';
+                SELECT @ResponseCode = 409, @ResponseMessage = N'That payment method is not available right now.';
         END
 
-        IF @ResponseCode = 0
+        IF @ResponseCode = 200
         BEGIN
             INSERT INTO @Wanted (ProductId, TotalQty)
             SELECT ProductId, SUM(Quantity) FROM @Lines GROUP BY ProductId;
@@ -99,19 +99,19 @@ BEGIN
             IF EXISTS (SELECT 1 FROM @Wanted AS w
                        WHERE NOT EXISTS (SELECT 1 FROM dbo.Products AS p
                                          WHERE p.ProductId = w.ProductId AND p.IsActive = 1))
-                SELECT @ResponseCode = 2001, @ResponseMessage = N'One of the items is no longer in the shop.';
+                SELECT @ResponseCode = 404, @ResponseMessage = N'One of the items is no longer in the shop.';
             ELSE IF EXISTS (SELECT 1 FROM @Lines AS l
                             WHERE l.BedSize IS NOT NULL
                               AND NOT EXISTS (SELECT 1 FROM dbo.BedSizes b WHERE b.BedSizeCode = l.BedSize))
-                SELECT @ResponseCode = 1003, @ResponseMessage = N'One of the items has an unknown bed size.';
+                SELECT @ResponseCode = 400, @ResponseMessage = N'One of the items has an unknown bed size.';
             ELSE IF EXISTS (SELECT 1 FROM @Lines AS l
                             WHERE l.SwatchId IS NOT NULL
                               AND NOT EXISTS (SELECT 1 FROM dbo.Swatches s WHERE s.SwatchId = l.SwatchId AND s.IsActive = 1))
-                SELECT @ResponseCode = 2004, @ResponseMessage = N'One of the chosen cloths is no longer available.';
+                SELECT @ResponseCode = 404, @ResponseMessage = N'One of the chosen cloths is no longer available.';
         END
 
         /* ── the transaction ──────────────────────────────────────────── */
-        IF @ResponseCode = 0
+        IF @ResponseCode = 200
         BEGIN
             BEGIN TRANSACTION;
 
@@ -142,7 +142,7 @@ BEGIN
                 IF @ShortName IS NOT NULL
                 BEGIN
                     ROLLBACK TRANSACTION;
-                    SELECT @ResponseCode = 3001,
+                    SELECT @ResponseCode = 409,
                            @ResponseMessage = @ShortName + N' just went out of stock. Please adjust your cart.';
                 END
                 ELSE
@@ -185,7 +185,7 @@ BEGIN
                     IF EXISTS (SELECT 1 FROM #Priced WHERE UnitPrice < 0)
                     BEGIN
                         ROLLBACK TRANSACTION;
-                        SELECT @ResponseCode = 1002,
+                        SELECT @ResponseCode = 400,
                                @ResponseMessage = N'That size is not available for one of the items.';
                     END
                     ELSE
@@ -245,7 +245,7 @@ BEGIN
         SET @OrderId = NULL; SET @Reference = NULL;
         INSERT INTO dbo.ErrorLog (ProcedureName, ErrorNumber, ErrorMessage, ErrorLine, ErrorSeverity)
         VALUES (ERROR_PROCEDURE(), ERROR_NUMBER(), ERROR_MESSAGE(), ERROR_LINE(), ERROR_SEVERITY());
-        SELECT @ResponseCode = 9001, @ResponseMessage = N'We could not place the order. Please try again.';
+        SELECT @ResponseCode = 500, @ResponseMessage = N'We could not place the order. Please try again.';
     END CATCH
 
     /* ── single exit, fixed shape ─────────────────────────────────────── */
@@ -281,7 +281,7 @@ BEGIN
     SET NOCOUNT ON;
     SET XACT_ABORT ON;
 
-    DECLARE @ResponseCode INT = 0, @ResponseMessage NVARCHAR(400) = N'OK';
+    DECLARE @ResponseCode INT = 200, @ResponseMessage NVARCHAR(400) = N'OK';
     DECLARE @Adjust DECIMAL(12,2) = 0, @Total DECIMAL(12,2) = 0;
 
     CREATE TABLE #Quote (
@@ -291,17 +291,34 @@ BEGIN
 
     BEGIN TRY
         IF @SheetProductId IS NULL OR @CurtainProductId IS NULL OR @CushionProductId IS NULL
-            SELECT @ResponseCode = 1001, @ResponseMessage = N'Pick a cloth for each part of the set.';
+            SELECT @ResponseCode = 400, @ResponseMessage = N'Pick a cloth for each part of the set.';
         ELSE IF NULLIF(LTRIM(RTRIM(@BedSize)), N'') IS NULL
-            SELECT @ResponseCode = 1001, @ResponseMessage = N'Pick a bed size.';
+            SELECT @ResponseCode = 400, @ResponseMessage = N'Pick a bed size.';
         ELSE IF NOT EXISTS (SELECT 1 FROM dbo.BedSizes WHERE BedSizeCode = @BedSize)
-            SELECT @ResponseCode = 1003, @ResponseMessage = N'That bed size is not one we stitch.';
+            SELECT @ResponseCode = 400, @ResponseMessage = N'That bed size is not one we stitch.';
         ELSE IF (SELECT COUNT(*) FROM dbo.Products
                  WHERE ProductId IN (@SheetProductId, @CurtainProductId, @CushionProductId) AND IsActive = 1)
                 < (SELECT COUNT(DISTINCT v) FROM (VALUES (@SheetProductId), (@CurtainProductId), (@CushionProductId)) AS x(v))
-            SELECT @ResponseCode = 2001, @ResponseMessage = N'One of the items is no longer in the shop.';
+            SELECT @ResponseCode = 404, @ResponseMessage = N'One of the items is no longer in the shop.';
+        /*  Each slot must be filled by the right KIND of product. Without this
+            the builder will happily quote an umbrella as curtains — it prices
+            whatever id it is handed, and the browser is not a trustworthy
+            source of which product belongs in which slot.                     */
+        ELSE IF NOT EXISTS (SELECT 1 FROM dbo.Products AS p
+                            JOIN dbo.Categories AS c ON c.CategoryId = p.CategoryId
+                            WHERE p.ProductId = @SheetProductId
+                              AND c.Slug IN (N'bed-sheets', N'wedding-sets'))
+            SELECT @ResponseCode = 400, @ResponseMessage = N'Pick a bed sheet or a wedding set for the bistar.';
+        ELSE IF NOT EXISTS (SELECT 1 FROM dbo.Products AS p
+                            JOIN dbo.Categories AS c ON c.CategoryId = p.CategoryId
+                            WHERE p.ProductId = @CurtainProductId AND c.Slug = N'curtains')
+            SELECT @ResponseCode = 400, @ResponseMessage = N'Pick a curtain for the parde.';
+        ELSE IF NOT EXISTS (SELECT 1 FROM dbo.Products AS p
+                            JOIN dbo.Categories AS c ON c.CategoryId = p.CategoryId
+                            WHERE p.ProductId = @CushionProductId AND c.Slug = N'cushions')
+            SELECT @ResponseCode = 400, @ResponseMessage = N'Pick a cushion set for the cushions.';
 
-        IF @ResponseCode = 0
+        IF @ResponseCode = 200
         BEGIN
             SELECT @Adjust = PriceAdjustment FROM dbo.BedSizes WHERE BedSizeCode = @BedSize;
 
@@ -328,7 +345,7 @@ BEGIN
         DELETE FROM #Quote; SET @Total = 0;
         INSERT INTO dbo.ErrorLog (ProcedureName, ErrorNumber, ErrorMessage, ErrorLine, ErrorSeverity)
         VALUES (ERROR_PROCEDURE(), ERROR_NUMBER(), ERROR_MESSAGE(), ERROR_LINE(), ERROR_SEVERITY());
-        SELECT @ResponseCode = 9001, @ResponseMessage = N'Could not price that set. Please try again.';
+        SELECT @ResponseCode = 500, @ResponseMessage = N'Could not price that set. Please try again.';
     END CATCH
 
     SELECT Slot, ProductId, ProductName, UnitPrice, InStock FROM #Quote ORDER BY SortIndex;
@@ -352,16 +369,16 @@ BEGIN
     SET NOCOUNT ON;
     SET XACT_ABORT ON;
 
-    DECLARE @ResponseCode INT = 0, @ResponseMessage NVARCHAR(400) = N'OK';
+    DECLARE @ResponseCode INT = 200, @ResponseMessage NVARCHAR(400) = N'OK';
     DECLARE @OrderId INT = NULL, @NormalisedPhone NVARCHAR(20);
 
     BEGIN TRY
         IF NULLIF(LTRIM(RTRIM(@Reference)), N'') IS NULL
-            SELECT @ResponseCode = 1001, @ResponseMessage = N'An order number is required.';
+            SELECT @ResponseCode = 400, @ResponseMessage = N'An order number is required.';
         ELSE IF NULLIF(LTRIM(RTRIM(@Phone)), N'') IS NULL
-            SELECT @ResponseCode = 1001, @ResponseMessage = N'The phone number on the order is required.';
+            SELECT @ResponseCode = 400, @ResponseMessage = N'The phone number on the order is required.';
 
-        IF @ResponseCode = 0
+        IF @ResponseCode = 200
         BEGIN
             SET @NormalisedPhone = REPLACE(REPLACE(REPLACE(REPLACE(@Phone, N' ', N''), N'-', N''), N'(', N''), N')', N'');
             IF LEFT(@NormalisedPhone, 3) = N'+92' SET @NormalisedPhone = N'0' + SUBSTRING(@NormalisedPhone, 4, 20);
@@ -375,14 +392,14 @@ BEGIN
                 or the phone does not match — otherwise this endpoint becomes
                 an oracle for enumerating which order numbers exist.           */
             IF @OrderId IS NULL
-                SELECT @ResponseCode = 2002, @ResponseMessage = N'We could not find that order.';
+                SELECT @ResponseCode = 404, @ResponseMessage = N'We could not find that order.';
         END
     END TRY
     BEGIN CATCH
         SET @OrderId = NULL;
         INSERT INTO dbo.ErrorLog (ProcedureName, ErrorNumber, ErrorMessage, ErrorLine, ErrorSeverity)
         VALUES (ERROR_PROCEDURE(), ERROR_NUMBER(), ERROR_MESSAGE(), ERROR_LINE(), ERROR_SEVERITY());
-        SELECT @ResponseCode = 9001, @ResponseMessage = N'Could not look up that order. Please try again.';
+        SELECT @ResponseCode = 500, @ResponseMessage = N'Could not look up that order. Please try again.';
     END CATCH
 
     SELECT  o.OrderId, o.Reference, o.Status, o.PaymentMethod, o.Subtotal, o.DeliveryCharge,
@@ -414,7 +431,7 @@ BEGIN
     SET NOCOUNT ON;
     SET XACT_ABORT ON;
 
-    DECLARE @ResponseCode INT = 0, @ResponseMessage NVARCHAR(400) = N'OK';
+    DECLARE @ResponseCode INT = 200, @ResponseMessage NVARCHAR(400) = N'OK';
     DECLARE @Total INT = 0, @NeedsAttention INT = 0;
 
     CREATE TABLE #Orders (
@@ -425,16 +442,16 @@ BEGIN
 
     BEGIN TRY
         IF @Page IS NULL OR @Page < 1
-            SELECT @ResponseCode = 1002, @ResponseMessage = N'Page must be 1 or more.';
+            SELECT @ResponseCode = 400, @ResponseMessage = N'Page must be 1 or more.';
         ELSE IF @PageSize IS NULL OR @PageSize < 1 OR @PageSize > 200
-            SELECT @ResponseCode = 1002, @ResponseMessage = N'Page size must be between 1 and 200.';
+            SELECT @ResponseCode = 400, @ResponseMessage = N'Page size must be between 1 and 200.';
         ELSE IF @Status IS NOT NULL
                 AND @Status NOT IN (N'Placed', N'Measuring', N'Stitching', N'Ready', N'Delivered', N'Cancelled')
-            SELECT @ResponseCode = 1003, @ResponseMessage = N'Unknown order status.';
+            SELECT @ResponseCode = 400, @ResponseMessage = N'Unknown order status.';
         ELSE IF @FromDate IS NOT NULL AND @ToDate IS NOT NULL AND @FromDate > @ToDate
-            SELECT @ResponseCode = 1002, @ResponseMessage = N'The start date must be before the end date.';
+            SELECT @ResponseCode = 400, @ResponseMessage = N'The start date must be before the end date.';
 
-        IF @ResponseCode = 0
+        IF @ResponseCode = 200
         BEGIN
             DECLARE @Pattern NVARCHAR(140) = NULL;
             IF NULLIF(LTRIM(RTRIM(@Search)), N'') IS NOT NULL
@@ -478,7 +495,7 @@ BEGIN
         DELETE FROM #Orders;
         INSERT INTO dbo.ErrorLog (ProcedureName, ErrorNumber, ErrorMessage, ErrorLine, ErrorSeverity)
         VALUES (ERROR_PROCEDURE(), ERROR_NUMBER(), ERROR_MESSAGE(), ERROR_LINE(), ERROR_SEVERITY());
-        SELECT @ResponseCode = 9001, @ResponseMessage = N'Could not load orders. Please try again.';
+        SELECT @ResponseCode = 500, @ResponseMessage = N'Could not load orders. Please try again.';
     END CATCH
 
     SELECT OrderId, Reference, PlacedAt, CustomerName, Phone, ItemSummary,
@@ -498,24 +515,24 @@ BEGIN
     SET NOCOUNT ON;
     SET XACT_ABORT ON;
 
-    DECLARE @ResponseCode INT = 0, @ResponseMessage NVARCHAR(400) = N'OK';
+    DECLARE @ResponseCode INT = 200, @ResponseMessage NVARCHAR(400) = N'OK';
     DECLARE @FoundId INT = NULL;
 
     BEGIN TRY
         IF @OrderId IS NULL OR @OrderId <= 0
-            SELECT @ResponseCode = 1001, @ResponseMessage = N'Order id is required.';
+            SELECT @ResponseCode = 400, @ResponseMessage = N'Order id is required.';
         ELSE
         BEGIN
             SELECT @FoundId = OrderId FROM dbo.Orders WHERE OrderId = @OrderId;
             IF @FoundId IS NULL
-                SELECT @ResponseCode = 2002, @ResponseMessage = N'That order no longer exists.';
+                SELECT @ResponseCode = 404, @ResponseMessage = N'That order no longer exists.';
         END
     END TRY
     BEGIN CATCH
         SET @FoundId = NULL;
         INSERT INTO dbo.ErrorLog (ProcedureName, ErrorNumber, ErrorMessage, ErrorLine, ErrorSeverity)
         VALUES (ERROR_PROCEDURE(), ERROR_NUMBER(), ERROR_MESSAGE(), ERROR_LINE(), ERROR_SEVERITY());
-        SELECT @ResponseCode = 9001, @ResponseMessage = N'Could not load that order. Please try again.';
+        SELECT @ResponseCode = 500, @ResponseMessage = N'Could not load that order. Please try again.';
     END CATCH
 
     /*  1 — the order   2 — lines   3 — measurements   4 — history   5 — status */
@@ -562,16 +579,16 @@ BEGIN
     SET NOCOUNT ON;
     SET XACT_ABORT ON;
 
-    DECLARE @ResponseCode INT = 0, @ResponseMessage NVARCHAR(400) = N'OK';
+    DECLARE @ResponseCode INT = 200, @ResponseMessage NVARCHAR(400) = N'OK';
     DECLARE @Current NVARCHAR(24) = NULL, @Reference NVARCHAR(16) = NULL;
 
     BEGIN TRY
         IF @OrderId IS NULL OR @OrderId <= 0
-            SELECT @ResponseCode = 1001, @ResponseMessage = N'Order id is required.';
+            SELECT @ResponseCode = 400, @ResponseMessage = N'Order id is required.';
         ELSE IF @NewStatus NOT IN (N'Placed', N'Measuring', N'Stitching', N'Ready', N'Delivered', N'Cancelled')
-            SELECT @ResponseCode = 1003, @ResponseMessage = N'That is not a status we use.';
+            SELECT @ResponseCode = 400, @ResponseMessage = N'That is not a status we use.';
 
-        IF @ResponseCode = 0
+        IF @ResponseCode = 200
         BEGIN
             BEGIN TRANSACTION;
 
@@ -582,7 +599,7 @@ BEGIN
                 IF @Current IS NULL
                 BEGIN
                     ROLLBACK TRANSACTION;
-                    SELECT @ResponseCode = 2002, @ResponseMessage = N'That order no longer exists.';
+                    SELECT @ResponseCode = 404, @ResponseMessage = N'That order no longer exists.';
                 END
                 ELSE IF @Current = @NewStatus
                 BEGIN
@@ -594,7 +611,7 @@ BEGIN
                 ELSE IF @Current IN (N'Delivered', N'Cancelled')
                 BEGIN
                     ROLLBACK TRANSACTION;
-                    SELECT @ResponseCode = 3003,
+                    SELECT @ResponseCode = 409,
                            @ResponseMessage = N'A ' + LOWER(@Current) + N' order cannot be moved again.';
                 END
                 ELSE
@@ -640,7 +657,7 @@ BEGIN
         IF XACT_STATE() <> 0 ROLLBACK TRANSACTION;
         INSERT INTO dbo.ErrorLog (ProcedureName, ErrorNumber, ErrorMessage, ErrorLine, ErrorSeverity)
         VALUES (ERROR_PROCEDURE(), ERROR_NUMBER(), ERROR_MESSAGE(), ERROR_LINE(), ERROR_SEVERITY());
-        SELECT @ResponseCode = 9001, @ResponseMessage = N'Could not update the order. Please try again.';
+        SELECT @ResponseCode = 500, @ResponseMessage = N'Could not update the order. Please try again.';
     END CATCH
 
     SELECT @ResponseCode AS ResponseCode, @ResponseMessage AS ResponseMessage;
@@ -661,23 +678,23 @@ BEGIN
     SET NOCOUNT ON;
     SET XACT_ABORT ON;
 
-    DECLARE @ResponseCode INT = 0, @ResponseMessage NVARCHAR(400) = N'OK';
+    DECLARE @ResponseCode INT = 200, @ResponseMessage NVARCHAR(400) = N'OK';
     DECLARE @Current NVARCHAR(24);
 
     BEGIN TRY
         IF @OrderId IS NULL OR @OrderId <= 0
-            SELECT @ResponseCode = 1001, @ResponseMessage = N'Order id is required.';
+            SELECT @ResponseCode = 400, @ResponseMessage = N'Order id is required.';
         ELSE IF @BedWidthIn IS NULL AND @BedLengthIn IS NULL AND @WindowDropIn IS NULL
                 AND NULLIF(LTRIM(RTRIM(@Notes)), N'') IS NULL
-            SELECT @ResponseCode = 1001, @ResponseMessage = N'Record at least one measurement or a note.';
+            SELECT @ResponseCode = 400, @ResponseMessage = N'Record at least one measurement or a note.';
         ELSE IF (@BedWidthIn   IS NOT NULL AND (@BedWidthIn   <= 0 OR @BedWidthIn   > 200))
              OR (@BedLengthIn  IS NOT NULL AND (@BedLengthIn  <= 0 OR @BedLengthIn  > 200))
              OR (@WindowDropIn IS NOT NULL AND (@WindowDropIn <= 0 OR @WindowDropIn > 300))
-            SELECT @ResponseCode = 1002, @ResponseMessage = N'One of those measurements is out of range.';
+            SELECT @ResponseCode = 400, @ResponseMessage = N'One of those measurements is out of range.';
         ELSE IF @WindowCount IS NOT NULL AND (@WindowCount < 0 OR @WindowCount > 100)
-            SELECT @ResponseCode = 1002, @ResponseMessage = N'Window count is out of range.';
+            SELECT @ResponseCode = 400, @ResponseMessage = N'Window count is out of range.';
 
-        IF @ResponseCode = 0
+        IF @ResponseCode = 200
         BEGIN
             BEGIN TRANSACTION;
 
@@ -686,12 +703,12 @@ BEGIN
                 IF @Current IS NULL
                 BEGIN
                     ROLLBACK TRANSACTION;
-                    SELECT @ResponseCode = 2002, @ResponseMessage = N'That order no longer exists.';
+                    SELECT @ResponseCode = 404, @ResponseMessage = N'That order no longer exists.';
                 END
                 ELSE IF @Current IN (N'Delivered', N'Cancelled')
                 BEGIN
                     ROLLBACK TRANSACTION;
-                    SELECT @ResponseCode = 3003, @ResponseMessage = N'That order is closed.';
+                    SELECT @ResponseCode = 409, @ResponseMessage = N'That order is closed.';
                 END
                 ELSE
                 BEGIN
@@ -719,7 +736,7 @@ BEGIN
         IF XACT_STATE() <> 0 ROLLBACK TRANSACTION;
         INSERT INTO dbo.ErrorLog (ProcedureName, ErrorNumber, ErrorMessage, ErrorLine, ErrorSeverity)
         VALUES (ERROR_PROCEDURE(), ERROR_NUMBER(), ERROR_MESSAGE(), ERROR_LINE(), ERROR_SEVERITY());
-        SELECT @ResponseCode = 9001, @ResponseMessage = N'Could not save the measurements. Please try again.';
+        SELECT @ResponseCode = 500, @ResponseMessage = N'Could not save the measurements. Please try again.';
     END CATCH
 
     SELECT @ResponseCode AS ResponseCode, @ResponseMessage AS ResponseMessage;

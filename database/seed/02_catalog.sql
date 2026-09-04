@@ -51,6 +51,14 @@ INSERT INTO @Products VALUES
  N'Light net, layers under drapes.',
  N'A light jaali net panel that layers under heavier drapes.'),
 
+(N'Gaddi Cushion Set', N'cushions', N'Cushions', 2400, N'Four covers', 18, 27, N'Terracotta',
+ N'Four cushion covers, stitched to match.',
+ N'Four cushion covers in the cloth of your choosing, stitched to match a bedding set or ordered on their own.'),
+
+(N'Velvet Cushion Pair', N'cushions', N'Cushions', 1800, N'Two covers', 15, 19, N'Plum',
+ N'Two heavier covers in velvet.',
+ N'A pair of velvet cushion covers with piped edges, in the same cloth family as the drapes.'),
+
 (N'Barsaat Long Umbrella', N'umbrellas', N'Chhata', 1450, N'One', 26, 61, N'Sage',
  N'Wooden handle, full span.',
  N'Full-span monsoon umbrella with a wooden handle.'),
