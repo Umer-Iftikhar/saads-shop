@@ -1,0 +1,49 @@
+# ---- .NET ----
+bin/
+obj/
+*.user
+*.suo
+*.userosscache
+*.sln.docstates
+[Dd]ebug/
+[Rr]elease/
+artifacts/
+TestResults/
+coverage/
+*.coverage
+*.trx
+*.received.*
+
+# ---- Secrets / local config ----
+# Never commit real connection strings, JWT signing keys or OAuth secrets.
+appsettings.Development.local.json
+appsettings.Local.json
+*.pfx
+*.p12
+.env
+.env.*
+!.env.example
+secrets.json
+
+# ---- Node / frontend ----
+node_modules/
+dist/
+dist-ssr/
+.vite/
+*.local
+npm-debug.log*
+yarn-error.log*
+pnpm-debug.log*
+
+# ---- Logs ----
+logs/
+*.log
+
+# ---- Editors / OS ----
+.vs/
+.vscode/*
+!.vscode/extensions.json
+.idea/
+*.swp
+.DS_Store
+Thumbs.db
