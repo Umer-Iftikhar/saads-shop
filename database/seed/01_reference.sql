@@ -27,7 +27,8 @@ USING (VALUES
     (N'Wedding sets', N'wedding-sets', 1),
     (N'Bed sheets',   N'bed-sheets',   2),
     (N'Curtains',     N'curtains',     3),
-    (N'Umbrellas',    N'umbrellas',    4)
+    (N'Cushions',     N'cushions',     4),
+    (N'Umbrellas',    N'umbrellas',    5)
 ) AS s (Name, Slug, SortOrder)
    ON t.Slug = s.Slug
 WHEN NOT MATCHED THEN

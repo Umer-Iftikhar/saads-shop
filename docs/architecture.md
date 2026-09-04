@@ -17,18 +17,56 @@
                                               └─────────────────┘
 ```
 
-## Backend projects
+## Backend layout
 
-| Project | Depends on | Contains |
-| --- | --- | --- |
-| `SaadsShop.Domain` | — | POCO entities, enums, domain constants. No attributes, no EF, no framework types. |
-| `SaadsShop.Application` | Domain | Service interfaces + implementations, DTOs, FluentValidation validators, repository *interfaces*, caching policy, mapping. |
-| `SaadsShop.Infrastructure` | Application, Domain | Dapper repository implementations, `IDbConnectionFactory`, Identity stores, JWT/refresh-token services, TOTP, memory-cache adapter. |
-| `SaadsShop.Api` | all | Controllers, middleware, DI wiring, Serilog, auth configuration, Swagger. |
+One ASP.NET Core project, organised by layer:
 
-Dependencies point **inward**. `Application` never references `Infrastructure`; the API
-composes them at startup. That keeps services unit-testable with a faked repository and no
-database.
+```
+backend/src/SaadsShop.Api/
+├── Controllers/       thin — bind, authorise, call a service, map the result
+├── DTOs/
+│   ├── Request/       what comes in, with validation attributes
+│   ├── Response/      what goes out; never a model straight from the database
+│   └── Internal/      ProcedureResult, OperationResult, PagedResult — never on the wire
+├── Services/
+│   ├── Interfaces/
+│   └── Implementations/   business rules, caching, orchestration
+├── Repositories/
+│   ├── Interfaces/
+│   └── Implementations/   one stored procedure per method, via Dapper
+├── Models/            POCOs Dapper materialises from result sets
+├── Constants/         procedure names, table types, cache keys, roles, policies
+├── Validation/        custom validation attributes (DateRange, NotFutureDate…)
+├── Middlewares/       correlation id, security headers, exception handling
+├── Configuration/     strongly-typed options, validated at startup
+├── Data/              connection factory
+├── Extensions/        DI registration
+└── Common/            enums, phone-number normalisation
+```
+
+### Why the DTO split
+
+`Request` and `Response` are separate types even where they look alike, because
+they answer to different pressures. A request carries validation attributes and
+accepts only what a client is allowed to set — `CartLineRequest` has no price
+field at all, so a tampered cart has nothing to tamper with. A response carries
+only what a caller should see: `ProductSummaryResponse` exposes `InStock` rather
+than the stock count, because how many are left is the shop's business.
+
+Reusing one type for both is how a model ends up quietly serialising a password
+hash. `Internal` holds the types that never cross the wire at all.
+
+### Layer rules
+
+- Controllers never touch a repository, and never branch on a response code —
+  `ApiControllerBase.FromResult` owns that mapping so it exists once.
+- Services never open a connection or name a procedure.
+- Repositories never make a decision: they run one procedure and hand back what
+  it reported, code and all.
+- Nothing outside `Constants/` contains a procedure name or a table-type name.
+
+Services take repository *interfaces*, so a service can be unit-tested with a
+fake and no database at all.
 
 ## Request flow
 

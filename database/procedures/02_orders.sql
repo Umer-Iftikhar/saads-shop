@@ -300,6 +300,23 @@ BEGIN
                  WHERE ProductId IN (@SheetProductId, @CurtainProductId, @CushionProductId) AND IsActive = 1)
                 < (SELECT COUNT(DISTINCT v) FROM (VALUES (@SheetProductId), (@CurtainProductId), (@CushionProductId)) AS x(v))
             SELECT @ResponseCode = 404, @ResponseMessage = N'One of the items is no longer in the shop.';
+        /*  Each slot must be filled by the right KIND of product. Without this
+            the builder will happily quote an umbrella as curtains — it prices
+            whatever id it is handed, and the browser is not a trustworthy
+            source of which product belongs in which slot.                     */
+        ELSE IF NOT EXISTS (SELECT 1 FROM dbo.Products AS p
+                            JOIN dbo.Categories AS c ON c.CategoryId = p.CategoryId
+                            WHERE p.ProductId = @SheetProductId
+                              AND c.Slug IN (N'bed-sheets', N'wedding-sets'))
+            SELECT @ResponseCode = 400, @ResponseMessage = N'Pick a bed sheet or a wedding set for the bistar.';
+        ELSE IF NOT EXISTS (SELECT 1 FROM dbo.Products AS p
+                            JOIN dbo.Categories AS c ON c.CategoryId = p.CategoryId
+                            WHERE p.ProductId = @CurtainProductId AND c.Slug = N'curtains')
+            SELECT @ResponseCode = 400, @ResponseMessage = N'Pick a curtain for the parde.';
+        ELSE IF NOT EXISTS (SELECT 1 FROM dbo.Products AS p
+                            JOIN dbo.Categories AS c ON c.CategoryId = p.CategoryId
+                            WHERE p.ProductId = @CushionProductId AND c.Slug = N'cushions')
+            SELECT @ResponseCode = 400, @ResponseMessage = N'Pick a cushion set for the cushions.';
 
         IF @ResponseCode = 200
         BEGIN

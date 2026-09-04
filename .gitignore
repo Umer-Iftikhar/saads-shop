@@ -47,3 +47,6 @@ logs/
 *.swp
 .DS_Store
 Thumbs.db
+
+# ---- .NET user secrets (id lives in the csproj; values live outside the repo) ----
+**/secrets.json
