@@ -73,7 +73,13 @@ Assigned codes:
 | `3004` | `OrderNotCancellable` | Order already delivered or cancelled |
 | `3005` | `PaymentMethodDisabled` | Method turned off in settings |
 | `3006` | `ProductInUse` | Delete blocked by existing order lines |
+| `4001` | `SessionInvalid` | Refresh token missing, expired, revoked or replayed |
+| `4002` | `TwoFactorCodeInvalid` | TOTP or recovery code rejected |
 | `9001` | `UnexpectedError` | Caught in `CATCH`, logged, details not exposed |
+
+The `4001` message is deliberately the same — "Please sign in again." — whether
+the token was unknown, expired, revoked or replayed. The distinction is recorded
+in the log and in the `ReuseDetected` flag, not handed to whoever presented it.
 
 The C# mirror lives in `SaadsShop.Domain/ResponseCodes.cs` and the two are asserted equal
 by an integration test, so they cannot drift.
@@ -183,11 +189,43 @@ exactly one succeeds and the rest get `3001`, with stock landing at 0 and never 
 
 ```
 database/
-├── schema/        01_tables.sql, 02_indexes.sql, 03_types.sql  (table-valued params)
-├── procedures/    one file per procedure, CREATE OR ALTER, re-runnable
-├── seed/          reference data + the catalogue from the design
-└── apply.sh       applies everything in order; idempotent
+├── schema/
+│   ├── 01_tables.sql     tables, constraints, key indexes, the reference sequence
+│   ├── 02_types.sql      table-valued parameter types
+│   └── 03_indexes.sql    query-support indexes, each naming the screen it serves
+├── procedures/
+│   ├── 01_catalog.sql    categories, swatches, products, the product editor
+│   ├── 02_orders.sql     checkout, set-builder quote, order lookup and status
+│   ├── 03_operations.sql inventory, the stitching floor, customers
+│   ├── 04_shop.sql       settings (public + panel) and the overview dashboard
+│   └── 05_identity.sql   users, roles, external logins, refresh tokens, 2FA codes
+├── seed/                 reference data + the catalogue from the design
+└── apply.sh              applies everything in order; idempotent
 ```
+
+Procedures are grouped by area rather than split one-per-file: they share
+validation idioms and are read together, and five files stay navigable where
+forty would not. Every one is `CREATE OR ALTER`, so re-applying is safe.
 
 Every file is `CREATE OR ALTER` or guarded by an existence check, so `apply.sh` can be run
 against a fresh or an existing database with the same result.
+
+## `QUOTED_IDENTIFIER` must be ON for any write
+
+`Products` carries **filtered indexes** (`IX_Products_LowStock`, `IX_Products_SoldCount`,
+each `WHERE IsActive = 1`). SQL Server refuses to modify a table with a filtered index from
+a session where `QUOTED_IDENTIFIER` is OFF:
+
+```
+Msg 1934: UPDATE failed because the following SET options have incorrect
+settings: 'QUOTED_IDENTIFIER'.
+```
+
+This is not a problem for the application — `Microsoft.Data.SqlClient` sets it ON for every
+connection, and a stored procedure runs with the setting captured when it was created, not
+the caller's. It bites **ad-hoc scripting**: `sqlcmd -Q "UPDATE Products ..."` fails unless
+you pass `-I`. `apply.sh` passes `-I` for exactly this reason.
+
+The failure is easy to miss because `sqlcmd` returns the error on stderr and carries on, so
+a maintenance script can appear to succeed while having changed nothing. If a manual fix-up
+seems not to have applied, check this first.
