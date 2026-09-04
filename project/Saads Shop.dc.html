@@ -1,0 +1,902 @@
+<!DOCTYPE html>
+<html>
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<script src="./support.js"></script>
+</head>
+<body>
+<x-dc>
+<helmet>
+<meta name="design_doc_mode" content="canvas">
+<link rel="stylesheet" href="_ds/organic-6a6f3ae5-09e2-40f9-9a42-9e645c79e454/styles.css">
+<script src="_ds/organic-6a6f3ae5-09e2-40f9-9a42-9e645c79e454/_ds_bundle.js"></script>
+<style>
+  body { margin: 0; background: var(--color-neutral-300); }
+  a { color: var(--color-accent-700); text-decoration: none; }
+  a:hover { color: var(--color-accent-600); }
+</style>
+</helmet>
+
+<div style="font-family: var(--font-body); color: var(--color-text); background: var(--color-neutral-300); padding: 72px 72px 140px; display: flex; flex-direction: column; gap: 88px;">
+
+  <div>
+    <div style="font-family: var(--font-heading); font-size: 56px; letter-spacing: -0.02em;">Saad's Shop — every page</div>
+    <div style="font-size: 17px; color: var(--color-neutral-700); margin-top: 8px;">Storefront and shop panel, laid out as frames. Bed sheets, curtains, wedding sets and umbrellas · Raja Bazaar, Rawalpindi.</div>
+  </div>
+
+  <div>
+    <div style="font-family: var(--font-heading); font-size: 30px; margin-bottom: 6px;">Storefront</div>
+    <div style="font-size: 14px; color: var(--color-neutral-700); margin-bottom: 28px;">Six customer-facing pages.</div>
+    <div id="storefront" style="display: flex; flex-wrap: wrap; gap: 56px; align-items: start;">
+
+      <div style="display: flex; flex-direction: column; gap: 12px;">
+        <div style="font-size: 13px; letter-spacing: 0.14em; text-transform: uppercase; color: var(--color-neutral-700);">01 · Home</div>
+        <div style="width: 1280px; height: 2450px; overflow: hidden; border-radius: var(--radius-lg); background: var(--color-bg); box-shadow: var(--shadow-lg);">
+          <dc-import name="ShopNav" active="Home" cart="{{ 2 }}" banner="{{ banner }}" hint-size="100%,110px"></dc-import>
+
+          <div style="display: grid; grid-template-columns: 1.05fr 0.95fr; gap: 48px; align-items: center; padding: 64px 40px 72px;">
+            <div>
+              <div class="tag tag-accent-2" style="border-radius: 999px; margin-bottom: 20px;">Shaadi season · stitched to measure</div>
+              <h1 style="font-size: 84px; line-height: 0.94; letter-spacing: -0.03em; margin: 0 0 22px; max-width: 12ch;">Wedding sets, made in Rawalpindi.</h1>
+              <p style="font-size: 19px; line-height: 1.6; max-width: 46ch; color: var(--color-neutral-700); margin: 0 0 30px; text-wrap: pretty;">Bridal bedding — sheets, covers and cushions — and full room packages with the parde matched to the bistar. Pick your cloth in the shop, or build the set here.</p>
+              <div style="display: flex; gap: 12px; flex-wrap: wrap;">
+                <span class="btn btn-primary" style="border-radius: 999px; padding: 13px 26px; font-size: 16px;">Build your set</span>
+                <span class="btn btn-secondary" style="border-radius: 999px; padding: 13px 26px; font-size: 16px;">See wedding sets</span>
+              </div>
+            </div>
+            <div style="position: relative; height: 460px;">
+              <div style="position: absolute; inset: 0 20% 22% 0; border-radius: var(--radius-lg); background: {{ heroA }}; box-shadow: var(--shadow-lg);"></div>
+              <div style="position: absolute; right: 0; top: 16%; width: 46%; height: 52%; border-radius: 999px 999px 24px 24px; background: {{ heroB }}; box-shadow: var(--shadow-md);"></div>
+              <div style="position: absolute; left: 12%; bottom: 0; width: 148px; height: 148px; border-radius: 50%; background: {{ heroC }}; box-shadow: var(--shadow-md);"></div>
+              <div style="position: absolute; right: 14%; bottom: 2%; background: var(--color-bg); border-radius: 999px; padding: 10px 18px; font-size: 13px; box-shadow: var(--shadow-sm);">Custom stitching · 3 days</div>
+            </div>
+          </div>
+
+          <div style="padding: 0 40px 18px; display: flex; align-items: end; justify-content: space-between; gap: 24px;">
+            <h2 style="font-size: 38px; margin: 0;">Bridal &amp; jahez sets</h2>
+            <span style="font-size: 15px; color: var(--color-accent-700);">All sets →</span>
+          </div>
+          <div style="display: grid; grid-template-columns: repeat(3, 1fr); gap: 22px; padding: 0 40px 64px;">
+            <sc-for list="{{ featured }}" as="p" hint-placeholder-count="3">
+              <div class="card elev-sm" style="padding: 0; overflow: hidden; border-radius: var(--radius-lg); gap: 0;">
+                <div class="washed" style="height: 230px; background: {{ p.swatch }};"></div>
+                <div style="padding: 20px 22px 22px; display: flex; flex-direction: column; gap: 7px;">
+                  <div class="card-kicker">{{ p.kicker }}</div>
+                  <div style="font-family: var(--font-heading); font-size: 23px; line-height: 1.1;">{{ p.name }}</div>
+                  <p style="margin: 0; font-size: 14px; color: var(--color-neutral-700);">{{ p.blurb }}</p>
+                  <div style="display: flex; align-items: center; justify-content: space-between; margin-top: 8px;">
+                    <div style="font-size: 18px; font-weight: 700;">{{ p.priceFmt }}</div>
+                    <div class="tag tag-neutral" style="border-radius: 999px;">{{ p.pieces }}</div>
+                  </div>
+                </div>
+              </div>
+            </sc-for>
+          </div>
+
+          <div style="margin: 0 40px 64px; border-radius: var(--radius-lg); background: var(--color-neutral-900); color: var(--color-neutral-100); padding: 46px 50px; display: grid; grid-template-columns: 1.2fr 0.8fr; gap: 40px; align-items: center;">
+            <div>
+              <h2 style="font-size: 42px; margin: 0 0 12px; color: var(--color-accent-300);">Match the parde to the bistar.</h2>
+              <p style="margin: 0 0 20px; font-size: 17px; color: var(--color-neutral-300); max-width: 48ch;">Click through the fabric swatches and watch the room change. When it looks right, send the combination to the shop and we stitch it.</p>
+              <span class="btn btn-primary" style="border-radius: 999px; padding: 12px 24px;">Open the set builder</span>
+            </div>
+            <div style="display: flex; gap: 10px;">
+              <sc-for list="{{ swatchStrip }}" as="s" hint-placeholder-count="4">
+                <div style="flex: 1; height: 160px; border-radius: 999px; background: {{ s.css }};"></div>
+              </sc-for>
+            </div>
+          </div>
+
+          <div style="padding: 0 40px 18px;"><h2 style="font-size: 38px; margin: 0;">Bistar, parde, chhata</h2></div>
+          <div style="display: grid; grid-template-columns: repeat(4, 1fr); gap: 18px; padding: 0 40px 64px;">
+            <sc-for list="{{ everyday }}" as="p" hint-placeholder-count="4">
+              <div class="card" style="border-radius: var(--radius-lg); padding: 0; overflow: hidden; gap: 0; background: var(--color-neutral-200);">
+                <div class="washed" style="height: 140px; background: {{ p.swatch }};"></div>
+                <div style="padding: 15px 17px 17px;">
+                  <div style="font-family: var(--font-heading); font-size: 17px;">{{ p.name }}</div>
+                  <div style="font-size: 13px; color: var(--color-neutral-600); margin: 4px 0 9px;">{{ p.cat }}</div>
+                  <div style="font-weight: 700;">{{ p.priceFmt }}</div>
+                </div>
+              </div>
+            </sc-for>
+          </div>
+
+          <div style="background: var(--color-surface); padding: 56px 40px;">
+            <h2 style="font-size: 38px; margin: 0 0 34px;">Three ways to order</h2>
+            <div style="display: grid; grid-template-columns: repeat(3, 1fr); gap: 30px;">
+              <sc-for list="{{ waysToOrder }}" as="w" hint-placeholder-count="3">
+                <div style="display: flex; gap: 18px; align-items: start;">
+                  <div style="flex: none; width: 58px; height: 58px; border-radius: 50%; background: var(--color-accent); color: var(--color-bg); display: grid; place-items: center; font-family: var(--font-heading); font-size: 24px;">{{ w.n }}</div>
+                  <div>
+                    <div style="font-family: var(--font-heading); font-size: 21px; margin-bottom: 5px;">{{ w.title }}</div>
+                    <p style="margin: 0; font-size: 14px; color: var(--color-neutral-700);">{{ w.body }}</p>
+                  </div>
+                </div>
+              </sc-for>
+            </div>
+          </div>
+
+          <div style="padding: 44px 40px; display: grid; grid-template-columns: repeat(3, 1fr); gap: 30px; font-size: 14px; color: var(--color-neutral-700);">
+            <div>
+              <div style="font-family: var(--font-heading); font-size: 21px; color: var(--color-text); margin-bottom: 8px;">{{ shopName }}</div>
+              <div>Shop 14, Moti Bazaar</div>
+              <div>Raja Bazaar, Rawalpindi</div>
+            </div>
+            <div>
+              <div style="font-weight: 700; color: var(--color-text); margin-bottom: 8px;">Open</div>
+              <div>Mon–Sat · 10am – 9pm</div>
+              <div>Friday break · 1pm – 2:30pm</div>
+            </div>
+            <div>
+              <div style="font-weight: 700; color: var(--color-text); margin-bottom: 8px;">Order on WhatsApp</div>
+              <div style="font-size: 21px; font-family: var(--font-heading); color: var(--color-text);">0300 000 0000</div>
+              <div style="margin-top: 5px;">Send a photo, get a quote.</div>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <div style="display: flex; flex-direction: column; gap: 12px;">
+        <div style="font-size: 13px; letter-spacing: 0.14em; text-transform: uppercase; color: var(--color-neutral-700);">02 · Wedding sets — listing</div>
+        <div style="width: 1280px; height: 1120px; overflow: hidden; border-radius: var(--radius-lg); background: var(--color-bg); box-shadow: var(--shadow-lg);">
+          <dc-import name="ShopNav" active="Wedding sets" cart="{{ 2 }}" banner="{{ banner }}" hint-size="100%,110px"></dc-import>
+          <div style="padding: 40px 40px 0;">
+            <h1 style="font-size: 60px; margin: 0 0 8px;">Wedding sets</h1>
+            <p style="margin: 0 0 28px; color: var(--color-neutral-700); font-size: 16px;">Six items · stitching and delivery inside Rawalpindi</p>
+            <div style="display: flex; gap: 10px; flex-wrap: wrap; margin-bottom: 28px;">
+              <sc-for list="{{ cats }}" as="c" hint-placeholder-count="5">
+                <div style="{{ c.style }}">{{ c.name }}</div>
+              </sc-for>
+            </div>
+            <div style="display: grid; grid-template-columns: repeat(3, 1fr); gap: 22px;">
+              <sc-for list="{{ listing }}" as="p" hint-placeholder-count="6">
+                <div class="card elev-sm" style="padding: 0; overflow: hidden; border-radius: var(--radius-lg); gap: 0;">
+                  <div class="washed" style="height: 190px; background: {{ p.swatch }};"></div>
+                  <div style="padding: 18px 20px 20px;">
+                    <div class="card-kicker">{{ p.kicker }}</div>
+                    <div style="font-family: var(--font-heading); font-size: 20px; margin: 5px 0 6px;">{{ p.name }}</div>
+                    <p style="margin: 0 0 12px; font-size: 13px; color: var(--color-neutral-700);">{{ p.blurb }}</p>
+                    <div style="display: flex; align-items: center; justify-content: space-between;">
+                      <div style="font-weight: 700; font-size: 17px;">{{ p.priceFmt }}</div>
+                      <div class="tag tag-accent-2" style="border-radius: 999px;">{{ p.pieces }}</div>
+                    </div>
+                  </div>
+                </div>
+              </sc-for>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <div style="display: flex; flex-direction: column; gap: 12px;">
+        <div style="font-size: 13px; letter-spacing: 0.14em; text-transform: uppercase; color: var(--color-neutral-700);">03 · Product — swatches are clickable</div>
+        <div style="width: 1280px; height: 1000px; overflow: hidden; border-radius: var(--radius-lg); background: var(--color-bg); box-shadow: var(--shadow-lg);">
+          <dc-import name="ShopNav" active="Wedding sets" cart="{{ 2 }}" banner="{{ banner }}" hint-size="100%,110px"></dc-import>
+          <div style="padding: 30px 40px 0;">
+            <div style="font-size: 14px; color: var(--color-accent-700); margin-bottom: 20px;">← Back to wedding sets</div>
+            <div style="display: grid; grid-template-columns: 1fr 0.85fr; gap: 48px; align-items: start;">
+              <div>
+                <div class="washed" style="height: 470px; border-radius: var(--radius-lg); background: {{ product.swatch }}; box-shadow: var(--shadow-lg);"></div>
+                <div style="display: flex; gap: 12px; margin-top: 16px;">
+                  <sc-for list="{{ productSwatches }}" as="s" hint-placeholder-count="6">
+                    <div onClick="{{ s.pick }}" style="{{ s.style }}"></div>
+                  </sc-for>
+                </div>
+                <div style="font-size: 13px; color: var(--color-neutral-600); margin-top: 12px;">Fabric: {{ swatchName }} · tap a swatch to change the cloth</div>
+              </div>
+              <div>
+                <div class="tag tag-accent" style="border-radius: 999px;">{{ product.kicker }}</div>
+                <h1 style="font-size: 50px; line-height: 1; margin: 16px 0 12px;">{{ product.name }}</h1>
+                <p style="font-size: 17px; color: var(--color-neutral-700); margin: 0 0 20px; text-wrap: pretty;">{{ product.long }}</p>
+                <div style="font-family: var(--font-heading); font-size: 36px; margin-bottom: 24px;">{{ productPriceFmt }}</div>
+                <div style="font-size: 12px; color: var(--color-neutral-600); margin-bottom: 8px;">BED SIZE</div>
+                <div style="display: flex; gap: 8px; margin-bottom: 24px;">
+                  <sc-for list="{{ sizes }}" as="s" hint-placeholder-count="3">
+                    <div style="{{ s.style }}">{{ s.name }}</div>
+                  </sc-for>
+                </div>
+                <div style="display: flex; flex-direction: column; gap: 10px; max-width: 340px;">
+                  <span class="btn btn-primary btn-block" style="border-radius: 999px; padding: 14px; font-size: 16px; margin: 0;">Add to cart</span>
+                  <span class="btn btn-secondary btn-block" style="border-radius: 999px; padding: 14px; font-size: 16px; margin: 0;">Order on WhatsApp</span>
+                </div>
+                <div style="margin-top: 28px; padding: 22px; border-radius: var(--radius-lg); background: var(--color-surface);">
+                  <div style="font-family: var(--font-heading); font-size: 19px; margin-bottom: 8px;">Made to measure</div>
+                  <p style="margin: 0; font-size: 14px; color: var(--color-neutral-700);">Bring your bed or window measurements to the shop, or send them on WhatsApp. Stitching takes three working days; wedding orders get priority in shaadi season.</p>
+                </div>
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <div style="display: flex; flex-direction: column; gap: 12px;">
+        <div style="font-size: 13px; letter-spacing: 0.14em; text-transform: uppercase; color: var(--color-neutral-700);">04 · Build your set — live room preview</div>
+        <div style="width: 1280px; height: 1000px; overflow: hidden; border-radius: var(--radius-lg); background: var(--color-bg); box-shadow: var(--shadow-lg);">
+          <dc-import name="ShopNav" active="Build your set" cart="{{ 2 }}" banner="{{ banner }}" hint-size="100%,110px"></dc-import>
+          <div style="padding: 34px 40px 0;">
+            <h1 style="font-size: 58px; margin: 0 0 8px; letter-spacing: -0.03em;">Build your set</h1>
+            <p style="margin: 0 0 26px; color: var(--color-neutral-700); font-size: 16px; max-width: 62ch;">Pick the cloth for the bistar, the parde and the cushions. The room updates as you go — then send the combination to the shop.</p>
+            <div style="display: grid; grid-template-columns: 250px 1fr 290px; gap: 28px; align-items: start;">
+              <div style="display: flex; flex-direction: column; gap: 22px;">
+                <sc-for list="{{ buildGroups }}" as="g" hint-placeholder-count="3">
+                  <div>
+                    <div style="font-family: var(--font-heading); font-size: 19px; margin-bottom: 3px;">{{ g.title }}</div>
+                    <div style="font-size: 12px; color: var(--color-neutral-600); margin-bottom: 10px;">{{ g.pickedName }}</div>
+                    <div style="display: grid; grid-template-columns: repeat(3, 1fr); gap: 9px;">
+                      <sc-for list="{{ g.options }}" as="o" hint-placeholder-count="6">
+                        <div onClick="{{ o.pick }}" style="{{ o.style }}"></div>
+                      </sc-for>
+                    </div>
+                  </div>
+                </sc-for>
+              </div>
+              <div style="position: relative; height: 520px; border-radius: var(--radius-lg); overflow: hidden; background: var(--color-neutral-200); box-shadow: var(--shadow-md);">
+                <div style="position: absolute; left: 0; right: 0; bottom: 0; height: 22%; background: var(--color-neutral-300);"></div>
+                <div style="position: absolute; left: 7%; top: 9%; width: 38%; height: 46%; border-radius: 999px 999px 20px 20px; background: linear-gradient(#fffaf0, #ffe7d4); box-shadow: inset 0 0 0 6px var(--color-neutral-100);"></div>
+                <div style="position: absolute; left: 3%; top: 6%; width: 15%; height: 56%; border-radius: 999px 999px 16px 16px; background: {{ curtainCss }}; box-shadow: var(--shadow-md);"></div>
+                <div style="position: absolute; left: 34%; top: 6%; width: 15%; height: 56%; border-radius: 999px 999px 16px 16px; background: {{ curtainCss }}; box-shadow: var(--shadow-md);"></div>
+                <div style="position: absolute; right: 5%; bottom: 14%; width: 58%; height: 34%; border-radius: 26px; background: {{ sheetCss }}; box-shadow: var(--shadow-lg);"></div>
+                <div style="position: absolute; right: 60%; bottom: 14%; width: 8%; height: 44%; border-radius: 999px 999px 0 0; background: var(--color-neutral-400);"></div>
+                <div style="position: absolute; right: 44%; bottom: 36%; width: 72px; height: 72px; border-radius: 24px; background: {{ cushionCss }}; box-shadow: var(--shadow-md);"></div>
+                <div style="position: absolute; right: 30%; bottom: 36%; width: 58px; height: 58px; border-radius: 20px; background: {{ cushionCss }}; box-shadow: var(--shadow-sm);"></div>
+                <div style="position: absolute; left: 22px; bottom: 20px; background: var(--color-bg); border-radius: 999px; padding: 8px 16px; font-size: 12px; box-shadow: var(--shadow-sm);">Preview · {{ buildSize }} bed</div>
+              </div>
+              <div class="card elev-md" style="border-radius: var(--radius-lg); padding: 24px; gap: 0;">
+                <div style="font-family: var(--font-heading); font-size: 23px; margin-bottom: 14px;">Your set</div>
+                <sc-for list="{{ buildLines }}" as="l" hint-placeholder-count="3">
+                  <div style="display: flex; justify-content: space-between; gap: 12px; font-size: 14px; padding: 9px 0; border-bottom: 1px solid var(--color-divider);">
+                    <span>{{ l.label }}</span><span style="font-weight: 700; white-space: nowrap;">{{ l.price }}</span>
+                  </div>
+                </sc-for>
+                <div style="font-size: 12px; color: var(--color-neutral-600); margin: 16px 0 8px;">BED SIZE</div>
+                <div style="display: flex; gap: 7px; margin-bottom: 16px;">
+                  <sc-for list="{{ buildSizes }}" as="s" hint-placeholder-count="3">
+                    <div onClick="{{ s.pick }}" style="{{ s.style }}">{{ s.name }}</div>
+                  </sc-for>
+                </div>
+                <div style="display: flex; justify-content: space-between; align-items: baseline; margin-bottom: 16px;">
+                  <span style="font-size: 13px; color: var(--color-neutral-600);">Total</span>
+                  <span style="font-family: var(--font-heading); font-size: 28px;">{{ buildTotal }}</span>
+                </div>
+                <span class="btn btn-primary btn-block" style="border-radius: 999px; padding: 13px; margin: 0;">Add set to cart</span>
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <div style="display: flex; flex-direction: column; gap: 12px;">
+        <div style="font-size: 13px; letter-spacing: 0.14em; text-transform: uppercase; color: var(--color-neutral-700);">05 · Cart &amp; checkout</div>
+        <div style="width: 1280px; height: 1000px; overflow: hidden; border-radius: var(--radius-lg); background: var(--color-bg); box-shadow: var(--shadow-lg);">
+          <dc-import name="ShopNav" active="Home" cart="{{ 3 }}" banner="{{ banner }}" hint-size="100%,110px"></dc-import>
+          <div style="padding: 36px 40px 0;">
+            <h1 style="font-size: 56px; margin: 0 0 26px;">Your cart</h1>
+            <div style="display: grid; grid-template-columns: 1fr 360px; gap: 32px; align-items: start;">
+              <div style="display: flex; flex-direction: column; gap: 14px;">
+                <sc-for list="{{ cart }}" as="i" hint-placeholder-count="2">
+                  <div class="card" style="flex-direction: row; align-items: center; gap: 18px; border-radius: var(--radius-lg); padding: 16px;">
+                    <div class="washed" style="flex: none; width: 88px; height: 88px; border-radius: 20px; background: {{ i.swatch }};"></div>
+                    <div style="flex: 1;">
+                      <div style="font-family: var(--font-heading); font-size: 20px;">{{ i.name }}</div>
+                      <div style="font-size: 13px; color: var(--color-neutral-600); margin-top: 3px;">{{ i.meta }}</div>
+                    </div>
+                    <div style="display: flex; align-items: center; gap: 10px;">
+                      <span class="btn btn-secondary btn-icon" style="border-radius: 50%;">−</span>
+                      <span style="width: 18px; text-align: center; font-weight: 700;">{{ i.qty }}</span>
+                      <span class="btn btn-secondary btn-icon" style="border-radius: 50%;">+</span>
+                    </div>
+                    <div style="width: 104px; text-align: right; font-weight: 700;">{{ i.lineFmt }}</div>
+                  </div>
+                </sc-for>
+                <div style="display: flex; align-items: center; gap: 14px; padding: 20px 22px; border-radius: var(--radius-lg); background: var(--color-accent-2-100); color: var(--color-accent-2-800); font-size: 14px;">
+                  Measurements needed for the drapes — we will call before stitching.
+                </div>
+              </div>
+              <div class="card elev-md" style="border-radius: var(--radius-lg); padding: 24px; gap: 0;">
+                <div style="font-family: var(--font-heading); font-size: 23px; margin-bottom: 14px;">Checkout</div>
+                <div style="display: flex; justify-content: space-between; font-size: 14px; padding: 7px 0;"><span>Items</span><span>{{ cartTotal }}</span></div>
+                <div style="display: flex; justify-content: space-between; font-size: 14px; padding: 7px 0; border-bottom: 1px solid var(--color-divider);"><span>Delivery in Rawalpindi</span><span>{{ deliveryFmt }}</span></div>
+                <div style="display: flex; justify-content: space-between; align-items: baseline; padding: 14px 0 18px;"><span style="font-size: 13px; color: var(--color-neutral-600);">To pay</span><span style="font-family: var(--font-heading); font-size: 28px;">{{ grandTotal }}</span></div>
+                <div style="font-size: 12px; color: var(--color-neutral-600); margin-bottom: 10px;">HOW WOULD YOU LIKE TO PAY?</div>
+                <div style="display: flex; flex-direction: column; gap: 11px; margin-bottom: 18px;">
+                  <sc-for list="{{ payOptions }}" as="o" hint-placeholder-count="3">
+                    <div style="display: flex; align-items: center; gap: 10px; font-size: 14px;">
+                      <div style="{{ o.dot }}"></div>{{ o.name }}
+                    </div>
+                  </sc-for>
+                </div>
+                <div class="field" style="margin-bottom: 10px;"><label>Name</label><input class="input" placeholder="Your name" style="border-radius: 999px;"></div>
+                <div class="field" style="margin-bottom: 10px;"><label>Phone / WhatsApp</label><input class="input" placeholder="03xx xxx xxxx" style="border-radius: 999px;"></div>
+                <div class="field" style="margin-bottom: 16px;"><label>Address in Rawalpindi</label><textarea class="input" placeholder="House, street, area"></textarea></div>
+                <span class="btn btn-primary btn-block" style="border-radius: 999px; padding: 13px; margin: 0;">Place order</span>
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <div style="display: flex; flex-direction: column; gap: 12px;">
+        <div style="font-size: 13px; letter-spacing: 0.14em; text-transform: uppercase; color: var(--color-neutral-700);">06 · Order placed</div>
+        <div style="width: 1280px; height: 720px; overflow: hidden; border-radius: var(--radius-lg); background: var(--color-bg); box-shadow: var(--shadow-lg);">
+          <dc-import name="ShopNav" active="Home" cart="{{ 0 }}" banner="{{ banner }}" hint-size="100%,110px"></dc-import>
+          <div style="padding: 86px 40px 0; text-align: center;">
+            <div style="width: 92px; height: 92px; border-radius: 50%; background: var(--color-accent-2-500); margin: 0 auto 24px;"></div>
+            <h1 style="font-size: 70px; margin: 0 0 12px;">Shukriya!</h1>
+            <p style="font-size: 19px; color: var(--color-neutral-700); margin: 0 0 6px;">Order SS-2419 is with the shop. We will call to confirm your measurements.</p>
+            <p style="font-size: 15px; color: var(--color-neutral-600); margin: 0 0 28px;">Paying cash on delivery · rider between 5pm and 8pm</p>
+            <span class="btn btn-secondary" style="border-radius: 999px; padding: 12px 26px;">Back to the shop</span>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <div>
+    <div style="font-family: var(--font-heading); font-size: 30px; margin-bottom: 6px;">Shop panel</div>
+    <div style="font-size: 14px; color: var(--color-neutral-700); margin-bottom: 28px;">Eight admin screens for Saad and the stitching floor.</div>
+    <div id="admin" style="display: flex; flex-wrap: wrap; gap: 56px; align-items: start;">
+
+      <div style="display: flex; flex-direction: column; gap: 12px;">
+        <div style="font-size: 13px; letter-spacing: 0.14em; text-transform: uppercase; color: var(--color-neutral-700);">07 · Overview</div>
+        <div style="width: 1440px; height: 1020px; display: grid; grid-template-columns: 258px 1fr; overflow: hidden; border-radius: var(--radius-lg); background: var(--color-neutral-100); box-shadow: var(--shadow-lg);">
+          <dc-import name="AdminSidebar" active="Overview" hint-size="258px,100%"></dc-import>
+          <div style="padding: 28px 32px;">
+            <div style="display: flex; align-items: center; justify-content: space-between; gap: 20px; margin-bottom: 22px;">
+              <div>
+                <h1 style="font-size: 36px; margin: 0;">Today at the shop</h1>
+                <div style="font-size: 14px; color: var(--color-neutral-600); margin-top: 3px;">Thursday, 4 September · shaadi season</div>
+              </div>
+              <div style="display: flex; gap: 10px; align-items: center;">
+                <input class="input" placeholder="Search orders, sets, customers" style="width: 260px; border-radius: 999px;">
+                <span class="btn btn-primary" style="border-radius: 999px; padding: 10px 20px;">+ New product</span>
+              </div>
+            </div>
+            <div style="display: grid; grid-template-columns: repeat(4, 1fr); gap: 16px; margin-bottom: 20px;">
+              <sc-for list="{{ stats }}" as="s" hint-placeholder-count="4">
+                <div class="card elev-sm" style="background: var(--color-bg); border-radius: var(--radius-lg); padding: 20px; gap: 5px;">
+                  <div class="card-kicker">{{ s.label }}</div>
+                  <div style="font-family: var(--font-heading); font-size: 30px; line-height: 1.05;">{{ s.value }}</div>
+                  <div style="font-size: 12px; color: {{ s.color }};">{{ s.delta }}</div>
+                </div>
+              </sc-for>
+            </div>
+            <div style="display: grid; grid-template-columns: 1.35fr 1fr; gap: 16px; margin-bottom: 16px;">
+              <div class="card elev-sm" style="background: var(--color-bg); border-radius: var(--radius-lg); padding: 22px;">
+                <div style="display: flex; justify-content: space-between; align-items: baseline; margin-bottom: 16px;">
+                  <div style="font-family: var(--font-heading); font-size: 21px;">Sales · last 12 weeks</div>
+                  <div class="tag tag-accent-2" style="border-radius: 999px;">Shaadi season peak</div>
+                </div>
+                <div style="display: flex; align-items: end; gap: 9px; height: 200px;">
+                  <sc-for list="{{ chart }}" as="b" hint-placeholder-count="12">
+                    <div style="flex: 1; display: flex; flex-direction: column; align-items: center; gap: 7px;">
+                      <div style="width: 100%; border-radius: 12px 12px 4px 4px; background: {{ b.fill }}; height: {{ b.h }};"></div>
+                      <div style="font-size: 10px; color: var(--color-neutral-600);">{{ b.label }}</div>
+                    </div>
+                  </sc-for>
+                </div>
+              </div>
+              <div class="card elev-sm" style="background: var(--color-bg); border-radius: var(--radius-lg); padding: 22px;">
+                <div style="font-family: var(--font-heading); font-size: 21px; margin-bottom: 10px;">Best sellers</div>
+                <sc-for list="{{ bestSellers }}" as="p" hint-placeholder-count="4">
+                  <div style="display: flex; align-items: center; gap: 12px; padding: 9px 0; border-bottom: 1px solid var(--color-divider);">
+                    <div class="washed" style="flex: none; width: 40px; height: 40px; border-radius: 13px; background: {{ p.swatch }};"></div>
+                    <div style="flex: 1;">
+                      <div style="font-size: 14px; font-weight: 600;">{{ p.name }}</div>
+                      <div style="font-size: 12px; color: var(--color-neutral-600);">{{ p.sold }} sold</div>
+                    </div>
+                    <div style="font-weight: 700; font-size: 13px;">{{ p.revenue }}</div>
+                  </div>
+                </sc-for>
+              </div>
+            </div>
+            <div class="card elev-sm" style="background: var(--color-bg); border-radius: var(--radius-lg); padding: 22px;">
+              <div style="display: flex; justify-content: space-between; align-items: baseline; margin-bottom: 8px;">
+                <div style="font-family: var(--font-heading); font-size: 21px;">Latest orders</div>
+                <div style="font-size: 14px; color: var(--color-accent-700);">All orders →</div>
+              </div>
+              <table class="table" style="width: 100%;">
+                <thead><tr><th>Order</th><th>Customer</th><th>Items</th><th>Total</th><th>Payment</th><th>Status</th></tr></thead>
+                <tbody>
+                  <sc-for list="{{ recentOrders }}" as="o" hint-placeholder-count="5">
+                    <tr>
+                      <td style="font-weight: 700;">{{ o.id }}</td><td>{{ o.customer }}</td><td>{{ o.items }}</td><td>{{ o.total }}</td><td>{{ o.pay }}</td>
+                      <td><span class="{{ o.tagClass }}" style="border-radius: 999px;">{{ o.status }}</span></td>
+                    </tr>
+                  </sc-for>
+                </tbody>
+              </table>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <div style="display: flex; flex-direction: column; gap: 12px;">
+        <div style="font-size: 13px; letter-spacing: 0.14em; text-transform: uppercase; color: var(--color-neutral-700);">08 · Orders</div>
+        <div style="width: 1440px; height: 900px; display: grid; grid-template-columns: 258px 1fr; overflow: hidden; border-radius: var(--radius-lg); background: var(--color-neutral-100); box-shadow: var(--shadow-lg);">
+          <dc-import name="AdminSidebar" active="Orders" hint-size="258px,100%"></dc-import>
+          <div style="padding: 28px 32px;">
+            <div style="display: flex; align-items: center; justify-content: space-between; gap: 20px; margin-bottom: 22px;">
+              <div>
+                <h1 style="font-size: 36px; margin: 0;">Orders</h1>
+                <div style="font-size: 14px; color: var(--color-neutral-600); margin-top: 3px;">8 orders · 3 need attention</div>
+              </div>
+              <div style="display: flex; gap: 10px; align-items: center;">
+                <input class="input" placeholder="Search by name or order number" style="width: 280px; border-radius: 999px;">
+                <span class="btn btn-secondary" style="border-radius: 999px; padding: 10px 20px;">Export</span>
+              </div>
+            </div>
+            <div class="card elev-sm" style="background: var(--color-bg); border-radius: var(--radius-lg); padding: 22px;">
+              <div style="display: flex; gap: 8px; margin-bottom: 14px;">
+                <sc-for list="{{ orderFilters }}" as="f" hint-placeholder-count="5">
+                  <div style="{{ f.style }}">{{ f.name }}</div>
+                </sc-for>
+              </div>
+              <table class="table" style="width: 100%;">
+                <thead><tr><th>Order</th><th>Date</th><th>Customer</th><th>Items</th><th>Total</th><th>Payment</th><th>Status</th><th></th></tr></thead>
+                <tbody>
+                  <sc-for list="{{ orders }}" as="o" hint-placeholder-count="8">
+                    <tr>
+                      <td style="font-weight: 700;">{{ o.id }}</td><td>{{ o.date }}</td><td>{{ o.customer }}</td><td>{{ o.items }}</td><td>{{ o.total }}</td><td>{{ o.pay }}</td>
+                      <td><span class="{{ o.tagClass }}" style="border-radius: 999px;">{{ o.status }}</span></td>
+                      <td style="color: var(--color-accent-700);">Open →</td>
+                    </tr>
+                  </sc-for>
+                </tbody>
+              </table>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <div style="display: flex; flex-direction: column; gap: 12px;">
+        <div style="font-size: 13px; letter-spacing: 0.14em; text-transform: uppercase; color: var(--color-neutral-700);">09 · Order detail</div>
+        <div style="width: 1440px; height: 780px; display: grid; grid-template-columns: 258px 1fr; overflow: hidden; border-radius: var(--radius-lg); background: var(--color-neutral-100); box-shadow: var(--shadow-lg);">
+          <dc-import name="AdminSidebar" active="Orders" hint-size="258px,100%"></dc-import>
+          <div style="padding: 28px 32px;">
+            <div style="font-size: 14px; color: var(--color-accent-700); margin-bottom: 16px;">← All orders</div>
+            <div style="display: grid; grid-template-columns: 1fr 330px; gap: 16px; align-items: start;">
+              <div class="card elev-sm" style="background: var(--color-bg); border-radius: var(--radius-lg); padding: 24px;">
+                <div style="display: flex; justify-content: space-between; align-items: start; margin-bottom: 16px;">
+                  <div>
+                    <div style="font-family: var(--font-heading); font-size: 28px;">{{ order.id }}</div>
+                    <div style="font-size: 13px; color: var(--color-neutral-600);">{{ order.date }} · {{ order.pay }}</div>
+                  </div>
+                  <span class="{{ order.tagClass }}" style="border-radius: 999px;">{{ order.status }}</span>
+                </div>
+                <sc-for list="{{ order.lines }}" as="l" hint-placeholder-count="2">
+                  <div style="display: flex; align-items: center; gap: 14px; padding: 12px 0; border-bottom: 1px solid var(--color-divider);">
+                    <div class="washed" style="flex: none; width: 50px; height: 50px; border-radius: 16px; background: {{ l.swatch }};"></div>
+                    <div style="flex: 1;">
+                      <div style="font-weight: 600;">{{ l.name }}</div>
+                      <div style="font-size: 12px; color: var(--color-neutral-600);">{{ l.meta }}</div>
+                    </div>
+                    <div style="font-weight: 700;">{{ l.price }}</div>
+                  </div>
+                </sc-for>
+                <div style="display: flex; justify-content: space-between; align-items: baseline; padding-top: 16px;">
+                  <span style="font-size: 13px; color: var(--color-neutral-600);">Total</span>
+                  <span style="font-family: var(--font-heading); font-size: 26px;">{{ order.total }}</span>
+                </div>
+                <div style="margin-top: 20px; padding: 18px 20px; border-radius: var(--radius-md); background: var(--color-accent-100); color: var(--color-accent-800); font-size: 13px;">
+                  Measurements: bed 78×60in · windows 84in drop, taken by Nasir on 4 Sep.
+                </div>
+              </div>
+              <div style="display: flex; flex-direction: column; gap: 16px;">
+                <div class="card elev-sm" style="background: var(--color-bg); border-radius: var(--radius-lg); padding: 20px;">
+                  <div style="font-family: var(--font-heading); font-size: 19px; margin-bottom: 8px;">Customer</div>
+                  <div style="font-size: 15px; font-weight: 600;">{{ order.customer }}</div>
+                  <div style="font-size: 13px; color: var(--color-neutral-700); margin-top: 3px;">{{ order.phone }}</div>
+                  <div style="font-size: 13px; color: var(--color-neutral-700);">{{ order.address }}</div>
+                  <span class="btn btn-secondary btn-block" style="border-radius: 999px;">Message on WhatsApp</span>
+                </div>
+                <div class="card elev-sm" style="background: var(--color-bg); border-radius: var(--radius-lg); padding: 20px;">
+                  <div style="font-family: var(--font-heading); font-size: 19px; margin-bottom: 10px;">Move it along</div>
+                  <div style="display: flex; flex-direction: column; gap: 8px;">
+                    <sc-for list="{{ orderActions }}" as="a" hint-placeholder-count="3">
+                      <span class="{{ a.cls }}" style="border-radius: 999px; margin: 0;">{{ a.name }}</span>
+                    </sc-for>
+                  </div>
+                </div>
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <div style="display: flex; flex-direction: column; gap: 12px;">
+        <div style="font-size: 13px; letter-spacing: 0.14em; text-transform: uppercase; color: var(--color-neutral-700);">10 · Inventory</div>
+        <div style="width: 1440px; height: 900px; display: grid; grid-template-columns: 258px 1fr; overflow: hidden; border-radius: var(--radius-lg); background: var(--color-neutral-100); box-shadow: var(--shadow-lg);">
+          <dc-import name="AdminSidebar" active="Inventory" hint-size="258px,100%"></dc-import>
+          <div style="padding: 28px 32px;">
+            <div style="display: flex; align-items: center; justify-content: space-between; gap: 20px; margin-bottom: 22px;">
+              <div>
+                <h1 style="font-size: 36px; margin: 0;">Inventory</h1>
+                <div style="font-size: 14px; color: var(--color-neutral-600); margin-top: 3px;">Stock counts across 10 products · 2 low</div>
+              </div>
+              <span class="btn btn-primary" style="border-radius: 999px; padding: 10px 20px;">Add stock</span>
+            </div>
+            <div class="card elev-sm" style="background: var(--color-bg); border-radius: var(--radius-lg); padding: 22px;">
+              <table class="table" style="width: 100%;">
+                <thead><tr><th>Product</th><th>Category</th><th>Price</th><th style="width: 240px;">In stock</th><th>Status</th><th></th></tr></thead>
+                <tbody>
+                  <sc-for list="{{ inventory }}" as="p" hint-placeholder-count="10">
+                    <tr>
+                      <td>
+                        <div style="display: flex; align-items: center; gap: 12px;">
+                          <div class="washed" style="flex: none; width: 38px; height: 38px; border-radius: 12px; background: {{ p.swatch }};"></div>
+                          <span style="font-weight: 600;">{{ p.name }}</span>
+                        </div>
+                      </td>
+                      <td>{{ p.cat }}</td><td>{{ p.priceFmt }}</td>
+                      <td>
+                        <div style="display: flex; align-items: center; gap: 10px;">
+                          <div style="flex: 1; height: 8px; border-radius: 999px; background: var(--color-neutral-300); overflow: hidden;">
+                            <div style="height: 100%; border-radius: 999px; background: {{ p.barFill }}; width: {{ p.barW }};"></div>
+                          </div>
+                          <span style="font-size: 13px; width: 30px; text-align: right;">{{ p.stock }}</span>
+                        </div>
+                      </td>
+                      <td><span class="{{ p.tagClass }}" style="border-radius: 999px;">{{ p.stockLabel }}</span></td>
+                      <td style="color: var(--color-accent-700);">Edit</td>
+                    </tr>
+                  </sc-for>
+                </tbody>
+              </table>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <div style="display: flex; flex-direction: column; gap: 12px;">
+        <div style="font-size: 13px; letter-spacing: 0.14em; text-transform: uppercase; color: var(--color-neutral-700);">11 · Product editor</div>
+        <div style="width: 1440px; height: 890px; display: grid; grid-template-columns: 258px 1fr; overflow: hidden; border-radius: var(--radius-lg); background: var(--color-neutral-100); box-shadow: var(--shadow-lg);">
+          <dc-import name="AdminSidebar" active="Products" hint-size="258px,100%"></dc-import>
+          <div style="padding: 28px 32px;">
+            <div style="margin-bottom: 22px;">
+              <h1 style="font-size: 36px; margin: 0;">Product editor</h1>
+              <div style="font-size: 14px; color: var(--color-neutral-600); margin-top: 3px;">Editing a wedding set · what customers see on the shop page</div>
+            </div>
+            <div style="display: grid; grid-template-columns: 1fr 340px; gap: 16px; align-items: start;">
+              <div class="card elev-sm" style="background: var(--color-bg); border-radius: var(--radius-lg); padding: 24px;">
+                <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 14px;">
+                  <div class="field" style="grid-column: span 2;"><label>Product name</label><input class="input" value="{{ draft.name }}" style="border-radius: 999px;"></div>
+                  <div class="field"><label>Category</label><input class="input" value="{{ draft.cat }}" style="border-radius: 999px;"></div>
+                  <div class="field"><label>Price (Rs)</label><input class="input" value="{{ draft.price }}" style="border-radius: 999px;"></div>
+                  <div class="field"><label>Pieces in set</label><input class="input" value="{{ draft.pieces }}" style="border-radius: 999px;"></div>
+                  <div class="field"><label>Stitching days</label><input class="input" value="3" style="border-radius: 999px;"></div>
+                  <div class="field" style="grid-column: span 2;"><label>Description</label><textarea class="input">{{ draft.blurb }}</textarea></div>
+                </div>
+                <div style="margin-top: 18px;">
+                  <div style="font-family: var(--font-heading); font-size: 19px; margin-bottom: 3px;">Fabric swatches</div>
+                  <div style="font-size: 13px; color: var(--color-neutral-600); margin-bottom: 12px;">On this product — tap to remove. Real photographs can be dropped in later.</div>
+                  <div style="display: flex; gap: 12px; flex-wrap: wrap; margin-bottom: 16px;">
+                    <sc-for list="{{ draftSwatches }}" as="s" hint-placeholder-count="2">
+                      <div style="{{ s.style }}"></div>
+                    </sc-for>
+                  </div>
+                  <div style="font-size: 13px; color: var(--color-neutral-600); margin-bottom: 10px;">Add from the shop's cloth palette</div>
+                  <div style="display: flex; gap: 12px; flex-wrap: wrap;">
+                    <sc-for list="{{ swatchPalette }}" as="s" hint-placeholder-count="4">
+                      <div style="{{ s.style }}">+</div>
+                    </sc-for>
+                  </div>
+                </div>
+                <div style="display: flex; gap: 10px; margin-top: 22px;">
+                  <span class="btn btn-primary" style="border-radius: 999px; padding: 11px 24px;">Save product</span>
+                  <span class="btn btn-secondary" style="border-radius: 999px; padding: 11px 24px;">Cancel</span>
+                </div>
+              </div>
+              <div class="card elev-md" style="background: var(--color-bg); border-radius: var(--radius-lg); padding: 0; overflow: hidden; gap: 0;">
+                <div class="washed" style="height: 210px; background: {{ draftSwatchCss }};"></div>
+                <div style="padding: 18px 20px 22px;">
+                  <div class="card-kicker">Shop preview</div>
+                  <div style="font-family: var(--font-heading); font-size: 21px; margin: 5px 0 6px;">{{ draft.name }}</div>
+                  <p style="margin: 0 0 12px; font-size: 13px; color: var(--color-neutral-700);">{{ draft.blurb }}</p>
+                  <div style="font-weight: 700; font-size: 17px;">{{ draftPriceFmt }}</div>
+                </div>
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <div style="display: flex; flex-direction: column; gap: 12px;">
+        <div style="font-size: 13px; letter-spacing: 0.14em; text-transform: uppercase; color: var(--color-neutral-700);">12 · Stitching queue</div>
+        <div style="width: 1440px; height: 700px; display: grid; grid-template-columns: 258px 1fr; overflow: hidden; border-radius: var(--radius-lg); background: var(--color-neutral-100); box-shadow: var(--shadow-lg);">
+          <dc-import name="AdminSidebar" active="Stitching queue" hint-size="258px,100%"></dc-import>
+          <div style="padding: 28px 32px;">
+            <div style="margin-bottom: 22px;">
+              <h1 style="font-size: 36px; margin: 0;">Stitching queue</h1>
+              <div style="font-size: 14px; color: var(--color-neutral-600); margin-top: 3px;">Custom orders on the floor · Nasir, Rafiq, Shakeel</div>
+            </div>
+            <div style="display: grid; grid-template-columns: repeat(4, 1fr); gap: 14px; align-items: start;">
+              <sc-for list="{{ stitchCols }}" as="c" hint-placeholder-count="4">
+                <div style="background: var(--color-bg); border-radius: var(--radius-lg); padding: 16px; box-shadow: var(--shadow-sm);">
+                  <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 12px;">
+                    <div style="font-family: var(--font-heading); font-size: 17px;">{{ c.name }}</div>
+                    <span class="tag tag-neutral" style="border-radius: 999px;">{{ c.count }}</span>
+                  </div>
+                  <div style="display: flex; flex-direction: column; gap: 10px;">
+                    <sc-for list="{{ c.jobs }}" as="j" hint-placeholder-count="2">
+                      <div style="border-radius: var(--radius-md); background: var(--color-neutral-200); padding: 13px;">
+                        <div style="display: flex; align-items: center; gap: 9px; margin-bottom: 7px;">
+                          <div class="washed" style="flex: none; width: 28px; height: 28px; border-radius: 10px; background: {{ j.swatch }};"></div>
+                          <div style="font-size: 13px; font-weight: 700;">{{ j.order }}</div>
+                        </div>
+                        <div style="font-size: 13px;">{{ j.name }}</div>
+                        <div style="font-size: 12px; color: var(--color-neutral-600); margin-top: 4px;">{{ j.who }} · due {{ j.due }}</div>
+                      </div>
+                    </sc-for>
+                  </div>
+                </div>
+              </sc-for>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <div style="display: flex; flex-direction: column; gap: 12px;">
+        <div style="font-size: 13px; letter-spacing: 0.14em; text-transform: uppercase; color: var(--color-neutral-700);">13 · Customers</div>
+        <div style="width: 1440px; height: 700px; display: grid; grid-template-columns: 258px 1fr; overflow: hidden; border-radius: var(--radius-lg); background: var(--color-neutral-100); box-shadow: var(--shadow-lg);">
+          <dc-import name="AdminSidebar" active="Customers" hint-size="258px,100%"></dc-import>
+          <div style="padding: 28px 32px;">
+            <div style="display: flex; align-items: center; justify-content: space-between; gap: 20px; margin-bottom: 22px;">
+              <div>
+                <h1 style="font-size: 36px; margin: 0;">Customers</h1>
+                <div style="font-size: 14px; color: var(--color-neutral-600); margin-top: 3px;">Repeat buyers and the areas they order from</div>
+              </div>
+              <input class="input" placeholder="Search by name or number" style="width: 260px; border-radius: 999px;">
+            </div>
+            <div class="card elev-sm" style="background: var(--color-bg); border-radius: var(--radius-lg); padding: 22px;">
+              <table class="table" style="width: 100%;">
+                <thead><tr><th>Customer</th><th>Phone</th><th>Area</th><th>Orders</th><th>Spent</th><th>Last order</th></tr></thead>
+                <tbody>
+                  <sc-for list="{{ customers }}" as="c" hint-placeholder-count="6">
+                    <tr>
+                      <td style="font-weight: 600;">{{ c.name }}</td><td>{{ c.phone }}</td><td>{{ c.area }}</td><td>{{ c.orders }}</td><td>{{ c.spent }}</td><td>{{ c.last }}</td>
+                    </tr>
+                  </sc-for>
+                </tbody>
+              </table>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <div style="display: flex; flex-direction: column; gap: 12px;">
+        <div style="font-size: 13px; letter-spacing: 0.14em; text-transform: uppercase; color: var(--color-neutral-700);">14 · Settings</div>
+        <div style="width: 1440px; height: 700px; display: grid; grid-template-columns: 258px 1fr; overflow: hidden; border-radius: var(--radius-lg); background: var(--color-neutral-100); box-shadow: var(--shadow-lg);">
+          <dc-import name="AdminSidebar" active="Settings" hint-size="258px,100%"></dc-import>
+          <div style="padding: 28px 32px;">
+            <div style="margin-bottom: 22px;">
+              <h1 style="font-size: 36px; margin: 0;">Settings</h1>
+              <div style="font-size: 14px; color: var(--color-neutral-600); margin-top: 3px;">Shop details, payment and delivery</div>
+            </div>
+            <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 16px; align-items: start; max-width: 1000px;">
+              <div class="card elev-sm" style="background: var(--color-bg); border-radius: var(--radius-lg); padding: 24px;">
+                <div style="font-family: var(--font-heading); font-size: 21px; margin-bottom: 14px;">Shop details</div>
+                <div class="field" style="margin-bottom: 11px;"><label>Shop name</label><input class="input" value="Saad's Shop" style="border-radius: 999px;"></div>
+                <div class="field" style="margin-bottom: 11px;"><label>City</label><input class="input" value="Rawalpindi" style="border-radius: 999px;"></div>
+                <div class="field" style="margin-bottom: 11px;"><label>Address</label><input class="input" value="Shop 14, Moti Bazaar, Raja Bazaar" style="border-radius: 999px;"></div>
+                <div class="field"><label>WhatsApp number</label><input class="input" value="0300 000 0000" style="border-radius: 999px;"></div>
+              </div>
+              <div style="display: flex; flex-direction: column; gap: 16px;">
+                <div class="card elev-sm" style="background: var(--color-bg); border-radius: var(--radius-lg); padding: 24px;">
+                  <div style="font-family: var(--font-heading); font-size: 21px; margin-bottom: 12px;">Payment &amp; delivery</div>
+                  <div style="display: flex; flex-direction: column; gap: 14px;">
+                    <sc-for list="{{ settingToggles }}" as="t" hint-placeholder-count="4">
+                      <div style="display: flex; align-items: center; justify-content: space-between; gap: 14px;">
+                        <div>
+                          <div style="font-size: 14px; font-weight: 600;">{{ t.name }}</div>
+                          <div style="font-size: 12px; color: var(--color-neutral-600);">{{ t.note }}</div>
+                        </div>
+                        <div style="{{ t.trackStyle }}"><div style="{{ t.knobStyle }}"></div></div>
+                      </div>
+                    </sc-for>
+                  </div>
+                </div>
+                <div class="card elev-sm" style="background: var(--color-bg); border-radius: var(--radius-lg); padding: 24px;">
+                  <div style="font-family: var(--font-heading); font-size: 21px; margin-bottom: 8px;">Delivery charge</div>
+                  <div class="field"><label>Inside Rawalpindi (Rs)</label><input class="input" value="300" style="border-radius: 999px;"></div>
+                  <div style="font-size: 12px; color: var(--color-neutral-600); margin-top: 8px;">Free over Rs 5,000 — the storefront banner text is editable in Tweaks.</div>
+                </div>
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+</div>
+
+</x-dc>
+<script type="text/x-dc" data-dc-script data-props="{&quot;shopName&quot;:{&quot;editor&quot;:&quot;text&quot;,&quot;default&quot;:&quot;Saad's Shop&quot;,&quot;tsType&quot;:&quot;string&quot;},&quot;banner&quot;:{&quot;editor&quot;:&quot;text&quot;,&quot;default&quot;:&quot;Free delivery inside Rawalpindi on orders over Rs 5,000 · Shaadi orders stitched in 3 days&quot;,&quot;tsType&quot;:&quot;string&quot;},&quot;fabricPattern&quot;:{&quot;editor&quot;:&quot;enum&quot;,&quot;options&quot;:[&quot;Woven&quot;,&quot;Striped&quot;,&quot;Floral dot&quot;],&quot;default&quot;:&quot;Woven&quot;,&quot;tsType&quot;:&quot;string&quot;,&quot;section&quot;:&quot;Fabric&quot;}}">
+class Component extends DCLogic {
+  state = { build: { sheet: 0, curtain: 3, cushion: 4, size: 'Double' }, sw: 5 };
+
+  colors = [
+    { n: 'Terracotta', v: '#c67139' }, { n: 'Sage', v: '#7a8a5e' }, { n: 'Cream', v: '#ebddc5' },
+    { n: 'Clay', v: '#8c491a' }, { n: 'Gold', v: 'oklch(0.78 0.11 85)' }, { n: 'Plum', v: 'oklch(0.46 0.09 350)' }
+  ];
+
+  products = [
+    { id: 1, name: 'Gulaab Bridal Set', cat: 'Wedding sets', kicker: 'Bridal bedding', price: 18500, pieces: '12 pieces', sw: 5, stock: 14, sold: 38, blurb: 'Sheet, two covers, four cushions and a runner.', long: 'A twelve-piece bridal bedding set: double sheet, two pillow covers, four cushion covers, a bed runner and matched laces. Stitched in the shop.' },
+    { id: 2, name: 'Chandni Room Package', cat: 'Wedding sets', kicker: 'Full room', price: 34000, pieces: 'Bedding + parde', sw: 1, stock: 6, sold: 21, blurb: 'Bedding with the curtains cut to your windows.', long: 'The full room: bridal bedding plus two curtain panels stitched to your window measurements, in the same cloth family.' },
+    { id: 3, name: 'Mehr Bridal Set', cat: 'Wedding sets', kicker: 'Bridal bedding', price: 22000, pieces: '14 pieces', sw: 4, stock: 9, sold: 17, blurb: 'Heavier cloth, gold thread work on the covers.', long: 'Fourteen pieces in a heavier weave with gold thread work along the covers and cushions.' },
+    { id: 4, name: 'Jahez Six-Piece Bundle', cat: 'Wedding sets', kicker: 'Jahez bundle', price: 9800, pieces: '6 pieces', sw: 0, stock: 22, sold: 44, blurb: 'Two sheets, two covers, two cushions.', long: 'A starter jahez bundle: two double sheets, two pillow covers and two cushion covers.' },
+    { id: 5, name: 'Sooti Double Bedsheet', cat: 'Bed sheets', kicker: 'Bistar', price: 3200, pieces: '3 pieces', sw: 2, stock: 48, sold: 96, blurb: 'Plain cotton, washes soft.', long: 'Plain cotton double sheet with two pillow covers.' },
+    { id: 6, name: 'Block Print Sheet', cat: 'Bed sheets', kicker: 'Bistar', price: 4100, pieces: '3 pieces', sw: 3, stock: 31, sold: 52, blurb: 'Hand block print, king or double.', long: 'Hand block printed cotton with two matching covers.' },
+    { id: 7, name: 'Velvet Drape Pair', cat: 'Curtains', kicker: 'Parde', price: 6900, pieces: 'Pair', sw: 5, stock: 12, sold: 29, blurb: 'Heavy velvet, blocks the afternoon sun.', long: 'A pair of heavy velvet drapes with a stitched header, hemmed to your drop.' },
+    { id: 8, name: 'Jaali Sheer Panel', cat: 'Curtains', kicker: 'Parde', price: 2400, pieces: 'Single panel', sw: 2, stock: 4, sold: 33, blurb: 'Light net, layers under drapes.', long: 'A light jaali net panel that layers under heavier drapes.' },
+    { id: 9, name: 'Barsaat Long Umbrella', cat: 'Umbrellas', kicker: 'Chhata', price: 1450, pieces: 'One', sw: 1, stock: 26, sold: 61, blurb: 'Wooden handle, full span.', long: 'Full-span monsoon umbrella with a wooden handle.' },
+    { id: 10, name: 'Compact Chhata', cat: 'Umbrellas', kicker: 'Chhata', price: 950, pieces: 'One', sw: 4, stock: 2, sold: 40, blurb: 'Folds into a bag.', long: 'Folds down small enough for a handbag; two-fold frame, wind vented.' }
+  ];
+
+  orderData = [
+    { id: 'SS-2418', date: '4 Sep', customer: 'Hina Aslam', phone: '0301 234 5678', address: 'Satellite Town, Block C', items: 'Chandni Room Package', pay: 'Cash on delivery', status: 'Stitching', lines: [2] },
+    { id: 'SS-2417', date: '4 Sep', customer: 'Bilal Tariq', phone: '0332 887 4410', address: 'Chaklala Scheme 3', items: 'Gulaab set, Velvet drapes', pay: 'WhatsApp', status: 'Measuring', lines: [1, 7] },
+    { id: 'SS-2416', date: '3 Sep', customer: 'Ayesha Nadeem', phone: '0345 112 9087', address: 'Raja Bazaar, near Moti', items: 'Jahez Six-Piece Bundle', pay: 'Reserve in shop', status: 'Ready', lines: [4] },
+    { id: 'SS-2415', date: '2 Sep', customer: 'Kashif Mehmood', phone: '0300 445 2211', address: 'Peshawar Road', items: 'Mehr Bridal Set', pay: 'Cash on delivery', status: 'Delivered', lines: [3] },
+    { id: 'SS-2414', date: '1 Sep', customer: 'Sana Rauf', phone: '0311 660 3390', address: 'Adiala Road', items: 'Sooti Bedsheet ×2', pay: 'Cash on delivery', status: 'Delivered', lines: [5] },
+    { id: 'SS-2413', date: '31 Aug', customer: 'Usman Shah', phone: '0321 909 1200', address: 'Westridge 1', items: 'Barsaat Umbrella ×3', pay: 'WhatsApp', status: 'Delivered', lines: [9] },
+    { id: 'SS-2412', date: '30 Aug', customer: 'Fatima Zubair', phone: '0333 447 8891', address: 'Bahria Town Phase 4', items: 'Chandni Room Package', pay: 'Card', status: 'Cancelled', lines: [2] },
+    { id: 'SS-2411', date: '29 Aug', customer: 'Rehan Sadiq', phone: '0308 221 6754', address: 'Dhoke Kala Khan', items: 'Jaali Sheer Panel ×4', pay: 'Cash on delivery', status: 'Ready', lines: [8] }
+  ];
+
+  fmt(n) { return 'Rs ' + Number(n).toLocaleString('en-US'); }
+
+  sw(i) {
+    const c = this.colors[i % this.colors.length].v, b = '#f5ead8';
+    const p = this.props.fabricPattern || 'Woven';
+    if (p === 'Striped') return 'repeating-linear-gradient(100deg, ' + c + ' 0 12px, ' + b + ' 12px 20px)';
+    if (p === 'Floral dot') return 'radial-gradient(circle at 9px 9px, ' + b + ' 3px, transparent 3.5px) 0 0/18px 18px, ' + c;
+    return 'repeating-linear-gradient(45deg, ' + c + ' 0 9px, color-mix(in srgb, ' + c + ' 74%, ' + b + ') 9px 18px)';
+  }
+
+  tagFor(s) {
+    if (s === 'Delivered' || s === 'Ready') return 'tag tag-accent-2';
+    if (s === 'Cancelled') return 'tag tag-neutral';
+    return 'tag tag-accent';
+  }
+
+  chip(active) {
+    return 'padding: 9px 20px; border-radius: 999px; font-size: 14px; ' +
+      (active ? 'background: var(--color-accent); color: var(--color-bg);' : 'background: var(--color-surface); color: var(--color-text);');
+  }
+
+  swTile(i, size, active) {
+    return 'cursor: pointer; width: ' + size + 'px; height: ' + size + 'px; border-radius: 50%; background: ' + this.sw(i) +
+      '; box-shadow: ' + (active ? '0 0 0 3px var(--color-accent)' : 'var(--shadow-sm)') + '; display: grid; place-items: center; color: rgba(245,234,216,0.9); font-size: 18px;';
+  }
+
+  renderVals() {
+    const st = this.state, b = st.build;
+    const dec = p => Object.assign({}, p, { swatch: this.sw(p.sw), priceFmt: this.fmt(p.price) });
+    const product = this.products[0];
+    const sizeAdd = { Single: -1200, Double: 0, King: 2600 };
+    const buildTotal = 3200 + 6900 + 2400 + sizeAdd[b.size];
+    const cart = [
+      { name: 'Gulaab Bridal Set', meta: 'Double · Plum · 12 pieces', price: 18500, qty: 1, sw: 5 },
+      { name: 'Velvet Drape Pair', meta: 'Drop 84in · Sage', price: 6900, qty: 2, sw: 1 }
+    ];
+    const cartTotal = cart.reduce((a, i) => a + i.price * i.qty, 0);
+    const chartMax = 96;
+
+    return {
+      shopName: this.props.shopName || "Saad's Shop",
+      banner: this.props.banner || 'Free delivery inside Rawalpindi on orders over Rs 5,000 · Shaadi orders stitched in 3 days',
+      heroA: this.sw(5), heroB: this.sw(1), heroC: this.sw(4),
+      featured: this.products.filter(p => p.cat === 'Wedding sets').slice(0, 3).map(dec),
+      everyday: this.products.filter(p => p.cat !== 'Wedding sets').slice(0, 4).map(dec),
+      swatchStrip: [0, 5, 1, 4].map(i => ({ css: this.sw(i) })),
+      waysToOrder: [
+        { n: '1', title: 'Cash on delivery', body: 'We bring the set to your door inside Rawalpindi and you pay the rider.' },
+        { n: '2', title: 'WhatsApp or call', body: 'Send a photo or your measurements. We quote, you confirm, we stitch.' },
+        { n: '3', title: 'Reserve, pay in shop', body: 'Hold the cloth online and see it in daylight at Moti Bazaar before paying.' }
+      ],
+
+      cats: ['Wedding sets', 'Bed sheets', 'Curtains', 'Umbrellas', 'All'].map((c, i) => ({ name: c, style: this.chip(i === 0) })),
+      listing: this.products.slice(0, 6).map(dec),
+
+      product: Object.assign({}, product, { swatch: this.sw(st.sw) }),
+      productPriceFmt: this.fmt(product.price),
+      productSwatches: this.colors.map((c, i) => ({ style: this.swTile(i, 54, st.sw === i), pick: () => this.setState({ sw: i }) })),
+      swatchName: this.colors[st.sw].n,
+      sizes: ['Single', 'Double', 'King'].map((s, i) => ({ name: s, style: this.chip(i === 1) })),
+
+      buildGroups: [
+        { title: 'Bistar — the sheet', pickedName: this.colors[b.sheet].n, options: this.colors.map((c, i) => ({ style: this.swTile(i, 62, b.sheet === i), pick: () => this.setState({ build: Object.assign({}, b, { sheet: i }) }) })) },
+        { title: 'Parde — the curtains', pickedName: this.colors[b.curtain].n, options: this.colors.map((c, i) => ({ style: this.swTile(i, 62, b.curtain === i), pick: () => this.setState({ build: Object.assign({}, b, { curtain: i }) }) })) },
+        { title: 'Cushions', pickedName: this.colors[b.cushion].n, options: this.colors.map((c, i) => ({ style: this.swTile(i, 62, b.cushion === i), pick: () => this.setState({ build: Object.assign({}, b, { cushion: i }) }) })) }
+      ],
+      sheetCss: this.sw(b.sheet), curtainCss: this.sw(b.curtain), cushionCss: this.sw(b.cushion),
+      buildSize: b.size,
+      buildLines: [
+        { label: 'Bedding · ' + this.colors[b.sheet].n, price: this.fmt(3200 + sizeAdd[b.size]) },
+        { label: 'Curtain pair · ' + this.colors[b.curtain].n, price: this.fmt(6900) },
+        { label: 'Four cushions · ' + this.colors[b.cushion].n, price: this.fmt(2400) }
+      ],
+      buildSizes: ['Single', 'Double', 'King'].map(s => ({ name: s, style: this.chip(b.size === s), pick: () => this.setState({ build: Object.assign({}, b, { size: s }) }) })),
+      buildTotal: this.fmt(buildTotal),
+
+      cart: cart.map(i => Object.assign({}, i, { swatch: this.sw(i.sw), lineFmt: this.fmt(i.price * i.qty) })),
+      cartTotal: this.fmt(cartTotal),
+      deliveryFmt: 'Free',
+      grandTotal: this.fmt(cartTotal),
+      payOptions: [
+        { name: 'Cash on delivery', on: true }, { name: 'Order on WhatsApp', on: false }, { name: 'Reserve, pay in the shop', on: false }
+      ].map(o => ({ name: o.name, dot: 'width: 16px; height: 16px; border-radius: 50%; flex: none; ' + (o.on ? 'background: var(--color-accent); box-shadow: inset 0 0 0 4px var(--color-bg), 0 0 0 1.5px var(--color-accent);' : 'box-shadow: inset 0 0 0 1.5px var(--color-divider);') })),
+
+      stats: [
+        { label: 'Sales today', value: this.fmt(41300), delta: '+18% on last Thursday', color: 'var(--color-accent-2-700)' },
+        { label: 'Orders open', value: '11', delta: '3 waiting on measurements', color: 'var(--color-accent-700)' },
+        { label: 'On the stitching floor', value: '7', delta: '2 due tomorrow', color: 'var(--color-neutral-600)' },
+        { label: 'September so far', value: this.fmt(386500), delta: 'Shaadi season running hot', color: 'var(--color-accent-2-700)' }
+      ],
+      chart: [42, 38, 51, 47, 62, 58, 71, 66, 84, 92, 78, 96].map((v, i) => ({
+        h: Math.round(v / chartMax * 190) + 'px', label: 'W' + (i + 1),
+        fill: i > 7 ? 'var(--color-accent)' : 'var(--color-accent-2-400)'
+      })),
+      bestSellers: this.products.slice(0, 4).map(p => ({ name: p.name, sold: p.sold, revenue: this.fmt(p.sold * p.price), swatch: this.sw(p.sw) })),
+      recentOrders: this.orderData.slice(0, 5).map(o => Object.assign({}, o, { tagClass: this.tagFor(o.status), total: this.fmt(o.lines.reduce((a, id) => a + this.products.find(p => p.id === id).price, 0)) })),
+      orders: this.orderData.map(o => Object.assign({}, o, { tagClass: this.tagFor(o.status), total: this.fmt(o.lines.reduce((a, id) => a + this.products.find(p => p.id === id).price, 0)) })),
+      orderFilters: ['All', 'Needs measuring', 'Stitching', 'Ready', 'Delivered'].map((f, i) => ({ name: f, style: this.chip(i === 0) })),
+
+      order: Object.assign({}, this.orderData[0], {
+        tagClass: this.tagFor(this.orderData[0].status), total: this.fmt(34300),
+        lines: [
+          { name: 'Chandni Room Package', meta: 'Bedding + 2 curtain panels · Sage', price: this.fmt(34000), swatch: this.sw(1) },
+          { name: 'Delivery — Satellite Town', meta: 'Rider, evening slot', price: this.fmt(300), swatch: this.sw(2) }
+        ]
+      }),
+      orderActions: [
+        { name: 'Mark measurements taken', cls: 'btn btn-primary btn-block' },
+        { name: 'Send to stitching floor', cls: 'btn btn-secondary btn-block' },
+        { name: 'Cancel order', cls: 'btn btn-ghost btn-block' }
+      ],
+
+      inventory: this.products.map(p => Object.assign({}, dec(p), {
+        barW: Math.min(100, Math.round(p.stock / 50 * 100)) + '%',
+        barFill: p.stock < 6 ? 'var(--color-accent)' : 'var(--color-accent-2-500)',
+        stockLabel: p.stock < 6 ? 'Low — reorder' : p.stock < 15 ? 'Fine' : 'Plenty',
+        tagClass: p.stock < 6 ? 'tag tag-accent' : 'tag tag-accent-2'
+      })),
+
+      draft: { name: 'Gulaab Bridal Set', cat: 'Wedding sets', price: '18500', pieces: '12 pieces', blurb: 'Bridal bedding — double sheet, two covers, four cushions and a runner.' },
+      draftPriceFmt: this.fmt(18500),
+      draftSwatchCss: this.sw(5),
+      draftSwatches: [5, 4].map(i => ({ style: this.swTile(i, 54, true) })),
+      swatchPalette: [0, 1, 2, 3].map(i => ({ style: this.swTile(i, 54, false) })),
+
+      stitchCols: [
+        { name: 'Measuring', jobs: [{ order: 'SS-2417', name: 'Gulaab Bridal Set', who: 'Nasir', due: '6 Sep', swatch: this.sw(5) }, { order: 'SS-2419', name: 'Velvet drapes, 3 windows', who: 'Nasir', due: '7 Sep', swatch: this.sw(1) }] },
+        { name: 'Cutting', jobs: [{ order: 'SS-2418', name: 'Chandni Room Package', who: 'Rafiq', due: '7 Sep', swatch: this.sw(1) }] },
+        { name: 'Stitching', jobs: [{ order: 'SS-2410', name: 'Mehr Bridal Set', who: 'Shakeel', due: '5 Sep', swatch: this.sw(4) }, { order: 'SS-2420', name: 'Jahez bundle ×2', who: 'Rafiq', due: '8 Sep', swatch: this.sw(0) }] },
+        { name: 'Ready', jobs: [{ order: 'SS-2416', name: 'Jahez Six-Piece Bundle', who: 'Front desk', due: 'today', swatch: this.sw(0) }, { order: 'SS-2411', name: 'Jaali Sheer Panel ×4', who: 'Front desk', due: 'today', swatch: this.sw(2) }] }
+      ].map(c => Object.assign({}, c, { count: c.jobs.length })),
+
+      customers: [
+        { name: 'Hina Aslam', phone: '0301 234 5678', area: 'Satellite Town', orders: 4, spent: this.fmt(71200), last: '4 Sep' },
+        { name: 'Bilal Tariq', phone: '0332 887 4410', area: 'Chaklala', orders: 2, spent: this.fmt(25400), last: '4 Sep' },
+        { name: 'Ayesha Nadeem', phone: '0345 112 9087', area: 'Raja Bazaar', orders: 7, spent: this.fmt(98300), last: '3 Sep' },
+        { name: 'Kashif Mehmood', phone: '0300 445 2211', area: 'Peshawar Road', orders: 1, spent: this.fmt(22000), last: '2 Sep' },
+        { name: 'Sana Rauf', phone: '0311 660 3390', area: 'Adiala Road', orders: 3, spent: this.fmt(11800), last: '1 Sep' },
+        { name: 'Usman Shah', phone: '0321 909 1200', area: 'Westridge', orders: 5, spent: this.fmt(18750), last: '31 Aug' }
+      ],
+      settingToggles: [
+        { name: 'Cash on delivery', note: 'Rider collects at the door', on: true },
+        { name: 'WhatsApp orders', note: 'Quotes and photos on 0300 000 0000', on: true },
+        { name: 'Reserve, pay in shop', note: 'Holds cloth for 48 hours', on: true },
+        { name: 'Card payment', note: 'Not set up yet', on: false }
+      ].map(t => ({
+        name: t.name, note: t.note,
+        trackStyle: 'width: 46px; height: 26px; border-radius: 999px; flex: none; padding: 3px; display: flex; ' + (t.on ? 'background: var(--color-accent); justify-content: flex-end;' : 'background: var(--color-neutral-400);'),
+        knobStyle: 'width: 20px; height: 20px; border-radius: 50%; background: var(--color-bg);'
+      }))
+    };
+  }
+}
+
+</script>
+</body>
+</html>

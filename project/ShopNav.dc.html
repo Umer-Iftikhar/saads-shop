@@ -1,0 +1,57 @@
+<!DOCTYPE html>
+<html>
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<script src="./support.js"></script>
+</head>
+<body>
+<x-dc>
+<helmet>
+<link rel="stylesheet" href="_ds/organic-6a6f3ae5-09e2-40f9-9a42-9e645c79e454/styles.css">
+<script src="_ds/organic-6a6f3ae5-09e2-40f9-9a42-9e645c79e454/_ds_bundle.js"></script>
+</helmet>
+<div style="font-family: var(--font-body); color: var(--color-text);">
+  <div style="background: var(--color-accent-2-700); color: var(--color-accent-2-100); font-size: 13px; text-align: center; padding: 8px 16px;">{{ banner }}</div>
+  <div class="nav" style="background: var(--color-bg); border-bottom: 1px solid var(--color-divider); padding: 14px 40px; gap: 26px;">
+    <div style="display: flex; align-items: center; gap: 11px; margin-right: auto;">
+      <svg width="44" height="44" viewBox="0 0 44 44" aria-hidden="true">
+        <circle cx="22" cy="22" r="21" fill="#c67139"></circle>
+        <path d="M4 30c4 0 4-4 8-4s4 4 8 4 4-4 8-4 4 4 8 4v9H4z" fill="#f5ead8"></path>
+        <path d="M4 30c4 0 4-4 8-4s4 4 8 4 4-4 8-4 4 4 8 4" stroke="#8c491a" stroke-width="1.5" fill="none" opacity="0.35"></path>
+        <text x="22" y="24" text-anchor="middle" font-family="Caprasimo, serif" font-size="21" fill="#f5ead8">S</text>
+        <circle cx="35" cy="9" r="4" fill="#7a8a5e"></circle>
+      </svg>
+      <div>
+        <div style="font-family: var(--font-heading); font-size: 20px; line-height: 1;">Saad's Shop</div>
+        <div style="font-size: 10px; letter-spacing: 0.16em; text-transform: uppercase; color: var(--color-neutral-600); margin-top: 3px;">Raja Bazaar · Rawalpindi</div>
+      </div>
+    </div>
+    <span style="{{ s0 }}">Home</span>
+    <span style="{{ s1 }}">Wedding sets</span>
+    <span style="{{ s2 }}">Bistar &amp; parde</span>
+    <span style="{{ s3 }}">Build your set</span>
+    <span class="btn btn-secondary" style="border-radius: 999px; padding: 7px 16px; font-size: 14px;">Cart · {{ cart }}</span>
+  </div>
+</div>
+
+</x-dc>
+<script type="text/x-dc" data-dc-script data-props="{&quot;$preview&quot;:{&quot;width&quot;:1280,&quot;height&quot;:110},&quot;active&quot;:{&quot;editor&quot;:&quot;enum&quot;,&quot;options&quot;:[&quot;Home&quot;,&quot;Wedding sets&quot;,&quot;Bistar &amp; parde&quot;,&quot;Build your set&quot;],&quot;default&quot;:&quot;Home&quot;,&quot;tsType&quot;:&quot;string&quot;},&quot;cart&quot;:{&quot;editor&quot;:&quot;int&quot;,&quot;default&quot;:0,&quot;tsType&quot;:&quot;number&quot;},&quot;banner&quot;:{&quot;editor&quot;:&quot;text&quot;,&quot;default&quot;:&quot;Free delivery inside Rawalpindi on orders over Rs 5,000 · Shaadi orders stitched in 3 days&quot;,&quot;tsType&quot;:&quot;string&quot;}}">
+class Component extends DCLogic {
+  renderVals() {
+    const a = this.props.active || 'Home';
+    const items = ['Home', 'Wedding sets', 'Bistar & parde', 'Build your set'];
+    const out = {
+      cart: this.props.cart == null ? 0 : this.props.cart,
+      banner: this.props.banner || 'Free delivery inside Rawalpindi on orders over Rs 5,000 · Shaadi orders stitched in 3 days'
+    };
+    items.forEach((n, i) => {
+      out['s' + i] = 'font-size: 14px; ' + (n === a ? 'color: var(--color-accent-700); font-weight: 700;' : 'color: var(--color-text);');
+    });
+    return out;
+  }
+}
+
+</script>
+</body>
+</html>
