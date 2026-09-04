@@ -15,7 +15,7 @@ Success returns the payload directly with the appropriate status code. Failure r
   "type":   "https://saadsshop.pk/errors/insufficient-stock",
   "title":  "One of the items just went out of stock.",
   "status": 409,
-  "responseCode": 3001,
+  "responseCode": 409,
   "correlationId": "0HN7GK2M9V1PL",
   "errors": { "lines[0].quantity": ["Only 1 left in stock."] }
 }
@@ -67,8 +67,7 @@ Prices, delivery charge and the total are computed server-side from `Products` a
 `ShopSettings` **inside the checkout transaction**. Any money field in the request is
 ignored. `201 Created` returns the reference, the priced lines and the total.
 
-`409` with `responseCode: 3001` means a line went out of stock between browsing and
-checkout — the response names which line, so the cart can show it precisely.
+`409` means a line went out of stock between browsing and checkout — the response names which line, so the cart can show it precisely.
 
 ## Shop panel — `StaffOnly` unless noted
 
@@ -77,12 +76,12 @@ checkout — the response names which line, so the cart can show it precisely.
 | `GET` | `/admin/dashboard` | Stat tiles, 12-week sales chart, best sellers, latest orders. Cached 2 min. |
 | `GET` | `/admin/orders` | `?status=&search=&page=`. |
 | `GET` | `/admin/orders/{id}` | Full order: lines, customer, measurements, history. |
-| `PATCH` | `/admin/orders/{id}/status` | Enforces the transition table; `3003` on an illegal move. |
+| `PATCH` | `/admin/orders/{id}/status` | Enforces the transition table; `409` on an illegal move. |
 | `POST` | `/admin/orders/{id}/measurements` | Records who took them and when. |
 | `GET` | `/admin/inventory` | Stock levels with low-stock flags. |
 | `POST` | `/admin/inventory/{productId}/adjust` | Signed delta + reason; every adjustment is audited. |
 | `GET`&nbsp;/&nbsp;`POST` | `/admin/products` | List / create. |
-| `PUT`&nbsp;/&nbsp;`DELETE` | `/admin/products/{id}` | Update / soft-delete. Delete is `OwnerOnly` and returns `3006` if order lines reference it. |
+| `PUT`&nbsp;/&nbsp;`DELETE` | `/admin/products/{id}` | Update / soft-delete. Delete is `OwnerOnly` and returns `409` if order lines reference it. |
 | `POST`&nbsp;/&nbsp;`DELETE` | `/admin/products/{id}/swatches` | Attach / detach cloth. |
 | `GET` | `/admin/stitching-queue` | Jobs grouped Measuring / Cutting / Stitching / Ready. |
 | `PATCH` | `/admin/stitching-queue/{jobId}` | Move stage, assign tailor, set due date. |
@@ -98,6 +97,6 @@ checkout — the response names which line, so the cart can show it precisely.
 | `401` | Missing, expired or replayed token |
 | `403` | Authenticated but not permitted (wrong role, or 2FA not performed) |
 | `404` | No such resource |
-| `409` | Business-rule conflict — out of stock, illegal status move, duplicate name |
+| `409` | Business-rule conflict — out of stock, illegal status move, duplicate name. The stored procedure returns this code directly. |
 | `429` | Rate limit — `Retry-After` is set |
 | `500` | Unexpected. Correlation id returned; details go to the log, not the client. |

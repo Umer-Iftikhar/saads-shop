@@ -15,7 +15,7 @@ SELECT @ResponseCode AS ResponseCode, @ResponseMessage AS ResponseMessage;
 
 | Column | Type | Meaning |
 | --- | --- | --- |
-| `ResponseCode` | `INT` | `0` on success; non-zero identifies the exact failure (table below) |
+| `ResponseCode` | `INT` | An HTTP status code — `200` on success, otherwise the status the API returns verbatim (table below) |
 | `ResponseMessage` | `NVARCHAR(400)` | Human-readable, safe to show a shop user. Never contains SQL, table names or internals. |
 
 C# reads it with a single `QueryMultipleAsync`:
@@ -43,46 +43,41 @@ it is, and a procedure can add payload sets later without breaking the reader.
 
 ## Response codes
 
-| Range | Class | Maps to HTTP |
+**A procedure's `ResponseCode` is an HTTP status code.** There is no translation
+table between the database and the wire, and therefore no way for the two to
+disagree — what a procedure decides is exactly what the caller sees.
+
+| Code | Meaning | Raised when |
 | --- | --- | --- |
-| `0` | Success | 200 / 201 |
-| `1000–1999` | Input validation | 400 |
-| `2000–2999` | Not found | 404 |
-| `3000–3999` | Business rule / conflict | 409 |
-| `4000–4999` | Authorisation | 403 |
-| `9000–9999` | Unexpected server-side failure | 500 |
+| `200` | Success | The operation completed |
+| `400` | Validation failed | Missing field, bad format, value out of range, empty cart |
+| `401` | Unauthorised | Refresh token missing, expired, revoked or replayed; 2FA code rejected |
+| `403` | Forbidden | Authenticated but not permitted |
+| `404` | Not found | No such product, order, customer, cloth or settings row |
+| `409` | Conflict | Insufficient stock, duplicate name, illegal status move, disabled payment method, product still referenced by orders |
+| `429` | Too many requests | Rate limit (applied at the API, not in SQL) |
+| `500` | Server error | Caught in the procedure's `CATCH`, logged there, details never exposed |
 
-Assigned codes:
+The C# mirror is `backend/src/SaadsShop.Api/Constants/ResponseCodes.cs`, and an
+integration test asserts every code a procedure can return appears there.
 
-| Code | Constant | Meaning |
-| --- | --- | --- |
-| `0` | `Success` | Operation completed |
-| `1001` | `RequiredFieldMissing` | A required parameter was null or blank |
-| `1002` | `ValueOutOfRange` | Number outside its permitted range (price, qty, stock) |
-| `1003` | `InvalidFormat` | Phone, email or enum value failed its format check |
-| `1004` | `StringTooLong` | Text exceeded the column's limit |
-| `1005` | `EmptyCart` | Checkout attempted with no lines |
-| `2001` | `ProductNotFound` | |
-| `2002` | `OrderNotFound` | |
-| `2003` | `CustomerNotFound` | |
-| `2004` | `SwatchNotFound` | |
-| `2005` | `SettingsNotFound` | |
-| `3001` | `InsufficientStock` | Requested quantity exceeds live stock |
-| `3002` | `DuplicateName` | Product name already in use |
-| `3003` | `InvalidStatusTransition` | e.g. Delivered → Measuring |
-| `3004` | `OrderNotCancellable` | Order already delivered or cancelled |
-| `3005` | `PaymentMethodDisabled` | Method turned off in settings |
-| `3006` | `ProductInUse` | Delete blocked by existing order lines |
-| `4001` | `SessionInvalid` | Refresh token missing, expired, revoked or replayed |
-| `4002` | `TwoFactorCodeInvalid` | TOTP or recovery code rejected |
-| `9001` | `UnexpectedError` | Caught in `CATCH`, logged, details not exposed |
+### What the code does not tell you
 
-The `4001` message is deliberately the same — "Please sign in again." — whether
-the token was unknown, expired, revoked or replayed. The distinction is recorded
-in the log and in the `ReuseDetected` flag, not handed to whoever presented it.
+Collapsing onto HTTP statuses means the code alone no longer says *which* rule
+refused: an out-of-stock line and a duplicate product name are both `409`. That
+detail lives in `ResponseMessage`, which is written to be shown to a shopkeeper
+or a customer unchanged — "Compact Chhata just went out of stock." names the
+offending line precisely enough for the cart to highlight it.
 
-The C# mirror lives in `SaadsShop.Domain/ResponseCodes.cs` and the two are asserted equal
-by an integration test, so they cannot drift.
+Two consequences worth knowing:
+
+- **`401` is deliberately uniform.** A refresh token that is unknown, expired,
+  revoked or replayed all return `401` with the same "Please sign in again."
+  The distinction is recorded in the log and in the redemption's
+  `ReuseDetected` flag, never handed back to whoever presented the token.
+- **Client branching should key on status + endpoint, not on message text.**
+  Messages are copy and will be reworded; a cart that greps for the word
+  "stock" will break the first time someone edits the wording.
 
 ## Naming
 
@@ -102,20 +97,20 @@ directly, with no manual `DynamicParameters` and no chance of a silent mismatch.
 CREATE OR ALTER PROCEDURE usp_Product_UpdateStock
     @ProductId INT,
     @Delta     INT,
-    @ActorId   NVARCHAR(450)
+    @ActorId   NVARCHAR(128)
 AS
 BEGIN
     SET NOCOUNT ON;
     SET XACT_ABORT ON;          -- any error aborts the whole transaction
 
-    DECLARE @ResponseCode INT = 0, @ResponseMessage NVARCHAR(400) = N'OK';
+    DECLARE @ResponseCode INT = 200, @ResponseMessage NVARCHAR(400) = N'OK';
 
     BEGIN TRY
         -- 1. validate every input before touching a table
         IF @ProductId IS NULL OR @ProductId <= 0
         BEGIN
             SELECT CAST(NULL AS INT) AS ProductId WHERE 1 = 0;   -- keep the shape
-            SELECT 1001 AS ResponseCode, N'Product id is required.' AS ResponseMessage;
+            SELECT 400 AS ResponseCode, N'Product id is required.' AS ResponseMessage;
             RETURN;
         END
         ...
@@ -128,7 +123,7 @@ BEGIN
         -- log internally, expose nothing
         INSERT INTO ErrorLog (ProcedureName, ErrorMessage, ErrorLine, OccurredAt)
         VALUES (ERROR_PROCEDURE(), ERROR_MESSAGE(), ERROR_LINE(), SYSUTCDATETIME());
-        SELECT 9001 AS ResponseCode, N'Something went wrong. Please try again.' AS ResponseMessage;
+        SELECT 500 AS ResponseCode, N'Something went wrong. Please try again.' AS ResponseMessage;
     END CATCH
 END
 ```
@@ -157,7 +152,7 @@ IF EXISTS (SELECT 1 FROM #locked k JOIN @Lines l ON l.ProductId = k.ProductId
            WHERE k.Stock < l.Quantity)
 BEGIN
     ROLLBACK TRANSACTION;
-    SELECT 3001 AS ResponseCode, N'One of the items just went out of stock.' AS ResponseMessage;
+    SELECT 409 AS ResponseCode, N'One of the items just went out of stock.' AS ResponseMessage;
     RETURN;
 END
 
@@ -183,7 +178,7 @@ that posts `price: 1` gets charged the real price — the request's money fields
 entirely.
 
 An integration test fires N concurrent checkouts at a product with stock 1 and asserts
-exactly one succeeds and the rest get `3001`, with stock landing at 0 and never negative.
+exactly one succeeds and the rest get `409`, with stock landing at 0 and never negative.
 
 ## Layout
 

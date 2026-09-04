@@ -26,12 +26,12 @@ BEGIN
     SET NOCOUNT ON;
     SET XACT_ABORT ON;
 
-    DECLARE @ResponseCode INT = 0, @ResponseMessage NVARCHAR(400) = N'OK';
+    DECLARE @ResponseCode INT = 200, @ResponseMessage NVARCHAR(400) = N'OK';
     DECLARE @FoundId NVARCHAR(128) = NULL;
 
     BEGIN TRY
         IF @UserId IS NULL AND @NormalizedEmail IS NULL AND @NormalizedUserName IS NULL
-            SELECT @ResponseCode = 1001, @ResponseMessage = N'A user id, email or username is required.';
+            SELECT @ResponseCode = 400, @ResponseMessage = N'A user id, email or username is required.';
         ELSE
             SELECT @FoundId = Id
             FROM   dbo.Users
@@ -44,7 +44,7 @@ BEGIN
         SET @FoundId = NULL;
         INSERT INTO dbo.ErrorLog (ProcedureName, ErrorNumber, ErrorMessage, ErrorLine, ErrorSeverity)
         VALUES (ERROR_PROCEDURE(), ERROR_NUMBER(), ERROR_MESSAGE(), ERROR_LINE(), ERROR_SEVERITY());
-        SELECT @ResponseCode = 9001, @ResponseMessage = N'Could not load the account.';
+        SELECT @ResponseCode = 500, @ResponseMessage = N'Could not load the account.';
     END CATCH
 
     /*  1 — the user (empty when not found; "no such user" is not an error
@@ -84,30 +84,30 @@ BEGIN
     SET NOCOUNT ON;
     SET XACT_ABORT ON;
 
-    DECLARE @ResponseCode INT = 0, @ResponseMessage NVARCHAR(400) = N'OK';
+    DECLARE @ResponseCode INT = 200, @ResponseMessage NVARCHAR(400) = N'OK';
     DECLARE @RoleId NVARCHAR(128);
 
     BEGIN TRY
         IF NULLIF(LTRIM(RTRIM(@Id)), N'') IS NULL
-            SELECT @ResponseCode = 1001, @ResponseMessage = N'User id is required.';
+            SELECT @ResponseCode = 400, @ResponseMessage = N'User id is required.';
         ELSE IF NULLIF(LTRIM(RTRIM(@Email)), N'') IS NULL OR @Email NOT LIKE N'%_@_%._%'
-            SELECT @ResponseCode = 1003, @ResponseMessage = N'A valid email address is required.';
+            SELECT @ResponseCode = 400, @ResponseMessage = N'A valid email address is required.';
         ELSE IF NULLIF(LTRIM(RTRIM(@FullName)), N'') IS NULL
-            SELECT @ResponseCode = 1001, @ResponseMessage = N'A name is required.';
+            SELECT @ResponseCode = 400, @ResponseMessage = N'A name is required.';
         ELSE IF LEN(@FullName) > 128
-            SELECT @ResponseCode = 1004, @ResponseMessage = N'That name is too long.';
+            SELECT @ResponseCode = 400, @ResponseMessage = N'That name is too long.';
         ELSE IF EXISTS (SELECT 1 FROM dbo.Users WHERE NormalizedEmail = @NormalizedEmail)
-            SELECT @ResponseCode = 3002, @ResponseMessage = N'An account with that email already exists.';
+            SELECT @ResponseCode = 409, @ResponseMessage = N'An account with that email already exists.';
         ELSE IF EXISTS (SELECT 1 FROM dbo.Users WHERE NormalizedUserName = @NormalizedUserName)
-            SELECT @ResponseCode = 3002, @ResponseMessage = N'That username is taken.';
+            SELECT @ResponseCode = 409, @ResponseMessage = N'That username is taken.';
         ELSE
         BEGIN
             SELECT @RoleId = Id FROM dbo.Roles WHERE NormalizedName = UPPER(@RoleName);
             IF @RoleId IS NULL
-                SELECT @ResponseCode = 2003, @ResponseMessage = N'That role does not exist.';
+                SELECT @ResponseCode = 404, @ResponseMessage = N'That role does not exist.';
         END
 
-        IF @ResponseCode = 0
+        IF @ResponseCode = 200
         BEGIN
             BEGIN TRANSACTION;
 
@@ -128,7 +128,7 @@ BEGIN
         IF XACT_STATE() <> 0 ROLLBACK TRANSACTION;
         INSERT INTO dbo.ErrorLog (ProcedureName, ErrorNumber, ErrorMessage, ErrorLine, ErrorSeverity)
         VALUES (ERROR_PROCEDURE(), ERROR_NUMBER(), ERROR_MESSAGE(), ERROR_LINE(), ERROR_SEVERITY());
-        SELECT @ResponseCode = 9001, @ResponseMessage = N'Could not create the account.';
+        SELECT @ResponseCode = 500, @ResponseMessage = N'Could not create the account.';
     END CATCH
 
     SELECT @ResponseCode AS ResponseCode, @ResponseMessage AS ResponseMessage;
@@ -158,20 +158,20 @@ BEGIN
     SET NOCOUNT ON;
     SET XACT_ABORT ON;
 
-    DECLARE @ResponseCode INT = 0, @ResponseMessage NVARCHAR(400) = N'OK';
+    DECLARE @ResponseCode INT = 200, @ResponseMessage NVARCHAR(400) = N'OK';
 
     BEGIN TRY
         IF NULLIF(LTRIM(RTRIM(@Id)), N'') IS NULL
-            SELECT @ResponseCode = 1001, @ResponseMessage = N'User id is required.';
+            SELECT @ResponseCode = 400, @ResponseMessage = N'User id is required.';
         ELSE IF NOT EXISTS (SELECT 1 FROM dbo.Users WHERE Id = @Id)
-            SELECT @ResponseCode = 2003, @ResponseMessage = N'That account no longer exists.';
+            SELECT @ResponseCode = 404, @ResponseMessage = N'That account no longer exists.';
         ELSE IF @Email IS NOT NULL AND @Email NOT LIKE N'%_@_%._%'
-            SELECT @ResponseCode = 1003, @ResponseMessage = N'A valid email address is required.';
+            SELECT @ResponseCode = 400, @ResponseMessage = N'A valid email address is required.';
         ELSE IF @NormalizedEmail IS NOT NULL
                 AND EXISTS (SELECT 1 FROM dbo.Users WHERE NormalizedEmail = @NormalizedEmail AND Id <> @Id)
-            SELECT @ResponseCode = 3002, @ResponseMessage = N'Another account already uses that email.';
+            SELECT @ResponseCode = 409, @ResponseMessage = N'Another account already uses that email.';
 
-        IF @ResponseCode = 0
+        IF @ResponseCode = 200
         BEGIN
             /*  COALESCE per column: Identity updates one facet at a time
                 (a failed sign-in bumps only AccessFailedCount), so a NULL
@@ -202,7 +202,7 @@ BEGIN
     BEGIN CATCH
         INSERT INTO dbo.ErrorLog (ProcedureName, ErrorNumber, ErrorMessage, ErrorLine, ErrorSeverity)
         VALUES (ERROR_PROCEDURE(), ERROR_NUMBER(), ERROR_MESSAGE(), ERROR_LINE(), ERROR_SEVERITY());
-        SELECT @ResponseCode = 9001, @ResponseMessage = N'Could not update the account.';
+        SELECT @ResponseCode = 500, @ResponseMessage = N'Could not update the account.';
     END CATCH
 
     SELECT @ResponseCode AS ResponseCode, @ResponseMessage AS ResponseMessage;
@@ -216,7 +216,7 @@ BEGIN
     SET NOCOUNT ON;
     SET XACT_ABORT ON;
 
-    DECLARE @ResponseCode INT = 0, @ResponseMessage NVARCHAR(400) = N'OK';
+    DECLARE @ResponseCode INT = 200, @ResponseMessage NVARCHAR(400) = N'OK';
 
     BEGIN TRY
         SELECT  u.Id, u.FullName, u.Email, u.PhoneNumber, u.TwoFactorEnabled,
@@ -232,7 +232,7 @@ BEGIN
     BEGIN CATCH
         INSERT INTO dbo.ErrorLog (ProcedureName, ErrorNumber, ErrorMessage, ErrorLine, ErrorSeverity)
         VALUES (ERROR_PROCEDURE(), ERROR_NUMBER(), ERROR_MESSAGE(), ERROR_LINE(), ERROR_SEVERITY());
-        SELECT @ResponseCode = 9001, @ResponseMessage = N'Could not load staff accounts.';
+        SELECT @ResponseCode = 500, @ResponseMessage = N'Could not load staff accounts.';
     END CATCH
 
     SELECT @ResponseCode AS ResponseCode, @ResponseMessage AS ResponseMessage;
@@ -252,25 +252,25 @@ BEGIN
     SET NOCOUNT ON;
     SET XACT_ABORT ON;
 
-    DECLARE @ResponseCode INT = 0, @ResponseMessage NVARCHAR(400) = N'OK';
+    DECLARE @ResponseCode INT = 200, @ResponseMessage NVARCHAR(400) = N'OK';
     DECLARE @RoleId NVARCHAR(128);
 
     BEGIN TRY
         SELECT @RoleId = Id FROM dbo.Roles WHERE NormalizedName = UPPER(@RoleName);
 
         IF NOT EXISTS (SELECT 1 FROM dbo.Users WHERE Id = @UserId)
-            SELECT @ResponseCode = 2003, @ResponseMessage = N'That account no longer exists.';
+            SELECT @ResponseCode = 404, @ResponseMessage = N'That account no longer exists.';
         ELSE IF @RoleId IS NULL
-            SELECT @ResponseCode = 2003, @ResponseMessage = N'That role does not exist.';
+            SELECT @ResponseCode = 404, @ResponseMessage = N'That role does not exist.';
         /*  The shop must never end up with no Owner — nobody could then
             change settings or manage staff again.                           */
         ELSE IF @Attach = 0 AND UPPER(@RoleName) = N'OWNER'
                 AND (SELECT COUNT(*) FROM dbo.UserRoles AS ur
                      JOIN dbo.Roles AS r ON r.Id = ur.RoleId
                      WHERE r.NormalizedName = N'OWNER') <= 1
-            SELECT @ResponseCode = 3003, @ResponseMessage = N'The shop must keep at least one owner.';
+            SELECT @ResponseCode = 409, @ResponseMessage = N'The shop must keep at least one owner.';
 
-        IF @ResponseCode = 0
+        IF @ResponseCode = 200
         BEGIN
             IF @Attach = 1
             BEGIN
@@ -288,7 +288,7 @@ BEGIN
     BEGIN CATCH
         INSERT INTO dbo.ErrorLog (ProcedureName, ErrorNumber, ErrorMessage, ErrorLine, ErrorSeverity)
         VALUES (ERROR_PROCEDURE(), ERROR_NUMBER(), ERROR_MESSAGE(), ERROR_LINE(), ERROR_SEVERITY());
-        SELECT @ResponseCode = 9001, @ResponseMessage = N'Could not change the role.';
+        SELECT @ResponseCode = 500, @ResponseMessage = N'Could not change the role.';
     END CATCH
 
     SELECT @ResponseCode AS ResponseCode, @ResponseMessage AS ResponseMessage;
@@ -309,16 +309,16 @@ BEGIN
     SET NOCOUNT ON;
     SET XACT_ABORT ON;
 
-    DECLARE @ResponseCode INT = 0, @ResponseMessage NVARCHAR(400) = N'OK';
+    DECLARE @ResponseCode INT = 200, @ResponseMessage NVARCHAR(400) = N'OK';
 
     BEGIN TRY
         IF NOT EXISTS (SELECT 1 FROM dbo.Users WHERE Id = @UserId AND IsActive = 1)
-            SELECT @ResponseCode = 2003, @ResponseMessage = N'That account is not active.';
+            SELECT @ResponseCode = 404, @ResponseMessage = N'That account is not active.';
         /*  One Google identity, one staff account. Letting a provider key
             point at two accounts would make "who just signed in" ambiguous. */
         ELSE IF EXISTS (SELECT 1 FROM dbo.UserLogins
                         WHERE LoginProvider = @LoginProvider AND ProviderKey = @ProviderKey AND UserId <> @UserId)
-            SELECT @ResponseCode = 3002, @ResponseMessage = N'That Google account is already linked to another user.';
+            SELECT @ResponseCode = 409, @ResponseMessage = N'That Google account is already linked to another user.';
         ELSE IF NOT EXISTS (SELECT 1 FROM dbo.UserLogins
                             WHERE LoginProvider = @LoginProvider AND ProviderKey = @ProviderKey)
         BEGIN
@@ -332,7 +332,7 @@ BEGIN
     BEGIN CATCH
         INSERT INTO dbo.ErrorLog (ProcedureName, ErrorNumber, ErrorMessage, ErrorLine, ErrorSeverity)
         VALUES (ERROR_PROCEDURE(), ERROR_NUMBER(), ERROR_MESSAGE(), ERROR_LINE(), ERROR_SEVERITY());
-        SELECT @ResponseCode = 9001, @ResponseMessage = N'Could not link that account.';
+        SELECT @ResponseCode = 500, @ResponseMessage = N'Could not link that account.';
     END CATCH
 
     SELECT @ResponseCode AS ResponseCode, @ResponseMessage AS ResponseMessage;
@@ -348,7 +348,7 @@ BEGIN
     SET NOCOUNT ON;
     SET XACT_ABORT ON;
 
-    DECLARE @ResponseCode INT = 0, @ResponseMessage NVARCHAR(400) = N'OK';
+    DECLARE @ResponseCode INT = 200, @ResponseMessage NVARCHAR(400) = N'OK';
 
     BEGIN TRY
         DELETE FROM dbo.UserLogins
@@ -359,7 +359,7 @@ BEGIN
     BEGIN CATCH
         INSERT INTO dbo.ErrorLog (ProcedureName, ErrorNumber, ErrorMessage, ErrorLine, ErrorSeverity)
         VALUES (ERROR_PROCEDURE(), ERROR_NUMBER(), ERROR_MESSAGE(), ERROR_LINE(), ERROR_SEVERITY());
-        SELECT @ResponseCode = 9001, @ResponseMessage = N'Could not unlink that account.';
+        SELECT @ResponseCode = 500, @ResponseMessage = N'Could not unlink that account.';
     END CATCH
 
     SELECT @ResponseCode AS ResponseCode, @ResponseMessage AS ResponseMessage;
@@ -380,11 +380,11 @@ BEGIN
     SET NOCOUNT ON;
     SET XACT_ABORT ON;
 
-    DECLARE @ResponseCode INT = 0, @ResponseMessage NVARCHAR(400) = N'OK';
+    DECLARE @ResponseCode INT = 200, @ResponseMessage NVARCHAR(400) = N'OK';
 
     BEGIN TRY
         IF NOT EXISTS (SELECT 1 FROM dbo.Users WHERE Id = @UserId)
-            SELECT @ResponseCode = 2003, @ResponseMessage = N'That account no longer exists.';
+            SELECT @ResponseCode = 404, @ResponseMessage = N'That account no longer exists.';
         ELSE
         BEGIN
             MERGE dbo.UserTokens AS target
@@ -400,7 +400,7 @@ BEGIN
     BEGIN CATCH
         INSERT INTO dbo.ErrorLog (ProcedureName, ErrorNumber, ErrorMessage, ErrorLine, ErrorSeverity)
         VALUES (ERROR_PROCEDURE(), ERROR_NUMBER(), ERROR_MESSAGE(), ERROR_LINE(), ERROR_SEVERITY());
-        SELECT @ResponseCode = 9001, @ResponseMessage = N'Could not save that token.';
+        SELECT @ResponseCode = 500, @ResponseMessage = N'Could not save that token.';
     END CATCH
 
     SELECT @ResponseCode AS ResponseCode, @ResponseMessage AS ResponseMessage;
@@ -416,7 +416,7 @@ BEGIN
     SET NOCOUNT ON;
     SET XACT_ABORT ON;
 
-    DECLARE @ResponseCode INT = 0, @ResponseMessage NVARCHAR(400) = N'OK';
+    DECLARE @ResponseCode INT = 200, @ResponseMessage NVARCHAR(400) = N'OK';
 
     BEGIN TRY
         SELECT Value FROM dbo.UserTokens
@@ -425,7 +425,7 @@ BEGIN
     BEGIN CATCH
         INSERT INTO dbo.ErrorLog (ProcedureName, ErrorNumber, ErrorMessage, ErrorLine, ErrorSeverity)
         VALUES (ERROR_PROCEDURE(), ERROR_NUMBER(), ERROR_MESSAGE(), ERROR_LINE(), ERROR_SEVERITY());
-        SELECT @ResponseCode = 9001, @ResponseMessage = N'Could not read that token.';
+        SELECT @ResponseCode = 500, @ResponseMessage = N'Could not read that token.';
     END CATCH
 
     SELECT @ResponseCode AS ResponseCode, @ResponseMessage AS ResponseMessage;
@@ -441,7 +441,7 @@ BEGIN
     SET NOCOUNT ON;
     SET XACT_ABORT ON;
 
-    DECLARE @ResponseCode INT = 0, @ResponseMessage NVARCHAR(400) = N'OK';
+    DECLARE @ResponseCode INT = 200, @ResponseMessage NVARCHAR(400) = N'OK';
 
     BEGIN TRY
         DELETE FROM dbo.UserTokens
@@ -450,7 +450,7 @@ BEGIN
     BEGIN CATCH
         INSERT INTO dbo.ErrorLog (ProcedureName, ErrorNumber, ErrorMessage, ErrorLine, ErrorSeverity)
         VALUES (ERROR_PROCEDURE(), ERROR_NUMBER(), ERROR_MESSAGE(), ERROR_LINE(), ERROR_SEVERITY());
-        SELECT @ResponseCode = 9001, @ResponseMessage = N'Could not remove that token.';
+        SELECT @ResponseCode = 500, @ResponseMessage = N'Could not remove that token.';
     END CATCH
 
     SELECT @ResponseCode AS ResponseCode, @ResponseMessage AS ResponseMessage;
@@ -475,16 +475,16 @@ BEGIN
     SET NOCOUNT ON;
     SET XACT_ABORT ON;
 
-    DECLARE @ResponseCode INT = 0, @ResponseMessage NVARCHAR(400) = N'OK';
+    DECLARE @ResponseCode INT = 200, @ResponseMessage NVARCHAR(400) = N'OK';
     DECLARE @NewId BIGINT = NULL;
 
     BEGIN TRY
         IF NOT EXISTS (SELECT 1 FROM dbo.Users WHERE Id = @UserId AND IsActive = 1)
-            SELECT @ResponseCode = 2003, @ResponseMessage = N'That account is not active.';
+            SELECT @ResponseCode = 404, @ResponseMessage = N'That account is not active.';
         ELSE IF @TokenHash IS NULL OR @FamilyId IS NULL
-            SELECT @ResponseCode = 1001, @ResponseMessage = N'Token details are required.';
+            SELECT @ResponseCode = 400, @ResponseMessage = N'Token details are required.';
         ELSE IF @ExpiresAt IS NULL OR @ExpiresAt <= SYSUTCDATETIME()
-            SELECT @ResponseCode = 1002, @ResponseMessage = N'Token expiry must be in the future.';
+            SELECT @ResponseCode = 400, @ResponseMessage = N'Token expiry must be in the future.';
         ELSE
         BEGIN
             INSERT INTO dbo.RefreshTokens (UserId, TokenHash, FamilyId, ExpiresAt, CreatedByIp)
@@ -497,7 +497,7 @@ BEGIN
         SET @NewId = NULL;
         INSERT INTO dbo.ErrorLog (ProcedureName, ErrorNumber, ErrorMessage, ErrorLine, ErrorSeverity)
         VALUES (ERROR_PROCEDURE(), ERROR_NUMBER(), ERROR_MESSAGE(), ERROR_LINE(), ERROR_SEVERITY());
-        SELECT @ResponseCode = 9001, @ResponseMessage = N'Could not start the session.';
+        SELECT @ResponseCode = 500, @ResponseMessage = N'Could not start the session.';
     END CATCH
 
     SELECT @NewId AS RefreshTokenId;
@@ -529,14 +529,14 @@ BEGIN
     SET NOCOUNT ON;
     SET XACT_ABORT ON;
 
-    DECLARE @ResponseCode INT = 0, @ResponseMessage NVARCHAR(400) = N'OK';
+    DECLARE @ResponseCode INT = 200, @ResponseMessage NVARCHAR(400) = N'OK';
     DECLARE @TokenId BIGINT, @UserId NVARCHAR(128) = NULL, @FamilyId UNIQUEIDENTIFIER,
             @ExpiresAt DATETIME2(3), @UsedAt DATETIME2(3), @RevokedAt DATETIME2(3),
             @NewId BIGINT = NULL, @ReuseDetected BIT = 0;
 
     BEGIN TRY
         IF @PresentedHash IS NULL OR @NewTokenHash IS NULL
-            SELECT @ResponseCode = 1001, @ResponseMessage = N'Token details are required.';
+            SELECT @ResponseCode = 400, @ResponseMessage = N'Token details are required.';
         ELSE
         BEGIN
             BEGIN TRANSACTION;
@@ -549,7 +549,7 @@ BEGIN
                 IF @TokenId IS NULL
                 BEGIN
                     ROLLBACK TRANSACTION;
-                    SELECT @ResponseCode = 4001, @ResponseMessage = N'Please sign in again.';
+                    SELECT @ResponseCode = 401, @ResponseMessage = N'Please sign in again.';
                 END
                 ELSE IF @UsedAt IS NOT NULL
                 BEGIN
@@ -565,18 +565,18 @@ BEGIN
 
                     SET @ReuseDetected = 1;
                     SET @UserId = NULL;      -- nothing is issued on this path
-                    SELECT @ResponseCode = 4001, @ResponseMessage = N'Please sign in again.';
+                    SELECT @ResponseCode = 401, @ResponseMessage = N'Please sign in again.';
                 END
                 ELSE IF @RevokedAt IS NOT NULL
                 BEGIN
                     ROLLBACK TRANSACTION;
-                    SELECT @ResponseCode = 4001, @ResponseMessage = N'Please sign in again.';
+                    SELECT @ResponseCode = 401, @ResponseMessage = N'Please sign in again.';
                     SET @UserId = NULL;
                 END
                 ELSE IF @ExpiresAt <= SYSUTCDATETIME()
                 BEGIN
                     ROLLBACK TRANSACTION;
-                    SELECT @ResponseCode = 4001, @ResponseMessage = N'Your session has expired. Please sign in again.';
+                    SELECT @ResponseCode = 401, @ResponseMessage = N'Your session has expired. Please sign in again.';
                     SET @UserId = NULL;
                 END
                 ELSE IF NOT EXISTS (SELECT 1 FROM dbo.Users WHERE Id = @UserId AND IsActive = 1)
@@ -587,7 +587,7 @@ BEGIN
                     WHERE  FamilyId = @FamilyId AND RevokedAt IS NULL;
 
                     COMMIT TRANSACTION;
-                    SELECT @ResponseCode = 4001, @ResponseMessage = N'Please sign in again.';
+                    SELECT @ResponseCode = 401, @ResponseMessage = N'Please sign in again.';
                     SET @UserId = NULL;
                 END
                 ELSE
@@ -611,7 +611,7 @@ BEGIN
         SET @UserId = NULL; SET @NewId = NULL;
         INSERT INTO dbo.ErrorLog (ProcedureName, ErrorNumber, ErrorMessage, ErrorLine, ErrorSeverity)
         VALUES (ERROR_PROCEDURE(), ERROR_NUMBER(), ERROR_MESSAGE(), ERROR_LINE(), ERROR_SEVERITY());
-        SELECT @ResponseCode = 9001, @ResponseMessage = N'Could not refresh the session.';
+        SELECT @ResponseCode = 500, @ResponseMessage = N'Could not refresh the session.';
     END CATCH
 
     /*  1 — who the new token belongs to (empty on every failure path), plus
@@ -638,12 +638,12 @@ BEGIN
     SET NOCOUNT ON;
     SET XACT_ABORT ON;
 
-    DECLARE @ResponseCode INT = 0, @ResponseMessage NVARCHAR(400) = N'OK';
+    DECLARE @ResponseCode INT = 200, @ResponseMessage NVARCHAR(400) = N'OK';
     DECLARE @Affected INT = 0;
 
     BEGIN TRY
         IF @TokenHash IS NULL AND @UserId IS NULL AND @FamilyId IS NULL
-            SELECT @ResponseCode = 1001, @ResponseMessage = N'Nothing identified to revoke.';
+            SELECT @ResponseCode = 400, @ResponseMessage = N'Nothing identified to revoke.';
         ELSE
         BEGIN
             /*  Revoking by token revokes its whole family: signing out on one
@@ -663,7 +663,7 @@ BEGIN
     BEGIN CATCH
         INSERT INTO dbo.ErrorLog (ProcedureName, ErrorNumber, ErrorMessage, ErrorLine, ErrorSeverity)
         VALUES (ERROR_PROCEDURE(), ERROR_NUMBER(), ERROR_MESSAGE(), ERROR_LINE(), ERROR_SEVERITY());
-        SELECT @ResponseCode = 9001, @ResponseMessage = N'Could not sign out.';
+        SELECT @ResponseCode = 500, @ResponseMessage = N'Could not sign out.';
     END CATCH
 
     SELECT @Affected AS RevokedCount;
@@ -680,12 +680,12 @@ BEGIN
     SET NOCOUNT ON;
     SET XACT_ABORT ON;
 
-    DECLARE @ResponseCode INT = 0, @ResponseMessage NVARCHAR(400) = N'OK';
+    DECLARE @ResponseCode INT = 200, @ResponseMessage NVARCHAR(400) = N'OK';
     DECLARE @Deleted INT = 0;
 
     BEGIN TRY
         IF @OlderThanDays IS NULL OR @OlderThanDays < 1 OR @OlderThanDays > 3650
-            SELECT @ResponseCode = 1002, @ResponseMessage = N'Retention must be between 1 and 3650 days.';
+            SELECT @ResponseCode = 400, @ResponseMessage = N'Retention must be between 1 and 3650 days.';
         ELSE
         BEGIN
             DELETE FROM dbo.RefreshTokens
@@ -696,7 +696,7 @@ BEGIN
     BEGIN CATCH
         INSERT INTO dbo.ErrorLog (ProcedureName, ErrorNumber, ErrorMessage, ErrorLine, ErrorSeverity)
         VALUES (ERROR_PROCEDURE(), ERROR_NUMBER(), ERROR_MESSAGE(), ERROR_LINE(), ERROR_SEVERITY());
-        SELECT @ResponseCode = 9001, @ResponseMessage = N'Could not purge tokens.';
+        SELECT @ResponseCode = 500, @ResponseMessage = N'Could not purge tokens.';
     END CATCH
 
     SELECT @Deleted AS DeletedCount;
@@ -724,13 +724,13 @@ BEGIN
     SET NOCOUNT ON;
     SET XACT_ABORT ON;
 
-    DECLARE @ResponseCode INT = 0, @ResponseMessage NVARCHAR(400) = N'OK';
+    DECLARE @ResponseCode INT = 200, @ResponseMessage NVARCHAR(400) = N'OK';
 
     BEGIN TRY
         IF NOT EXISTS (SELECT 1 FROM dbo.Users WHERE Id = @UserId)
-            SELECT @ResponseCode = 2003, @ResponseMessage = N'That account no longer exists.';
+            SELECT @ResponseCode = 404, @ResponseMessage = N'That account no longer exists.';
         ELSE IF @CodeHash IS NULL
-            SELECT @ResponseCode = 1001, @ResponseMessage = N'A code is required.';
+            SELECT @ResponseCode = 400, @ResponseMessage = N'A code is required.';
         ELSE
         BEGIN
             IF @ClearExisting = 1
@@ -742,7 +742,7 @@ BEGIN
     BEGIN CATCH
         INSERT INTO dbo.ErrorLog (ProcedureName, ErrorNumber, ErrorMessage, ErrorLine, ErrorSeverity)
         VALUES (ERROR_PROCEDURE(), ERROR_NUMBER(), ERROR_MESSAGE(), ERROR_LINE(), ERROR_SEVERITY());
-        SELECT @ResponseCode = 9001, @ResponseMessage = N'Could not save the recovery codes.';
+        SELECT @ResponseCode = 500, @ResponseMessage = N'Could not save the recovery codes.';
     END CATCH
 
     SELECT @ResponseCode AS ResponseCode, @ResponseMessage AS ResponseMessage;
@@ -759,7 +759,7 @@ BEGIN
     SET NOCOUNT ON;
     SET XACT_ABORT ON;
 
-    DECLARE @ResponseCode INT = 0, @ResponseMessage NVARCHAR(400) = N'OK';
+    DECLARE @ResponseCode INT = 200, @ResponseMessage NVARCHAR(400) = N'OK';
     DECLARE @CodeId BIGINT = NULL, @Remaining INT = 0;
 
     BEGIN TRY
@@ -772,7 +772,7 @@ BEGIN
             IF @CodeId IS NULL
             BEGIN
                 ROLLBACK TRANSACTION;
-                SELECT @ResponseCode = 4002, @ResponseMessage = N'That code is not valid.';
+                SELECT @ResponseCode = 401, @ResponseMessage = N'That code is not valid.';
             END
             ELSE
             BEGIN
@@ -789,7 +789,7 @@ BEGIN
         IF XACT_STATE() <> 0 ROLLBACK TRANSACTION;
         INSERT INTO dbo.ErrorLog (ProcedureName, ErrorNumber, ErrorMessage, ErrorLine, ErrorSeverity)
         VALUES (ERROR_PROCEDURE(), ERROR_NUMBER(), ERROR_MESSAGE(), ERROR_LINE(), ERROR_SEVERITY());
-        SELECT @ResponseCode = 9001, @ResponseMessage = N'Could not check that code.';
+        SELECT @ResponseCode = 500, @ResponseMessage = N'Could not check that code.';
     END CATCH
 
     SELECT @Remaining AS RemainingCodes;

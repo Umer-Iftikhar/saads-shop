@@ -58,13 +58,13 @@ Run against SQL Server 2022 CU26, fresh database, zero warnings:
 | Schema + 41 procedures apply clean, twice in a row | ✅ |
 | Valid checkout prices from the table, free delivery over Rs 5,000 | ✅ |
 | Order under Rs 5,000 charged Rs 300 delivery | ✅ |
-| Malformed phone rejected (`1003`) | ✅ |
-| Disabled payment method rejected (`3005`) | ✅ |
-| Oversell rejected (`3001`) | ✅ |
+| Malformed phone rejected (`400`) | ✅ |
+| Disabled payment method rejected (`409`) | ✅ |
+| Oversell rejected (`409`) | ✅ |
 | Two cart lines of one product summed against stock, not checked separately | ✅ |
-| **15 concurrent checkouts, stock 1 → exactly 1 success, 14 × `3001`, stock 0, no deadlocks** | ✅ |
+| **15 concurrent checkouts, stock 1 → exactly 1 success, 14 × `409`, stock 0, no deadlocks** | ✅ |
 | Refresh rotation, then replay burns the whole family | ✅ |
-| Recovery codes single-use (`4002` on reuse) | ✅ |
-| Last Owner cannot be demoted (`3003`) | ✅ |
-| Delivered order cannot be reopened (`3003`) | ✅ |
-| Disabling every payment method refused (`3005`) | ✅ |
+| Recovery codes single-use (`401` on reuse) | ✅ |
+| Last Owner cannot be demoted (`409`) | ✅ |
+| Delivered order cannot be reopened (`409`) | ✅ |
+| Disabling every payment method refused (`409`) | ✅ |
