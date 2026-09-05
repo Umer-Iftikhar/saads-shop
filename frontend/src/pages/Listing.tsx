@@ -53,17 +53,17 @@ export function Listing({ fixedCategory, title, subtitle }: {
   const total = products.data?.totalCount ?? 0;
 
   return (
-    <main id="main" className="page page-pad" style={{ paddingBlock: 40 }}>
-      <h1 className="display-page" style={{ margin: '0 0 8px' }}>{heading}</h1>
+    <main id="main" className="page py-10">
+      <h1 className="display-page mb-2 mt-0">{heading}</h1>
 
-      <p style={{ margin: '0 0 28px', color: 'var(--color-neutral-700)', fontSize: 16 }}>
+      <p className="mb-7 mt-0 text-base text-neutral-700">
         {subtitle ?? (products.isPending
           ? 'Loading…'
           : `${total} ${total === 1 ? 'item' : 'items'} · stitching and delivery inside Rawalpindi`)}
       </p>
 
       {!fixedCategory && (
-        <div style={{ display: 'flex', gap: 10, flexWrap: 'wrap', marginBottom: 28 }} role="group" aria-label="Filter by category">
+        <div className="mb-7 flex flex-wrap gap-2.5" role="group" aria-label="Filter by category">
           <FilterChip active={!selected} onClick={() => setCategory(null)}>All</FilterChip>
           {categories.data?.map(category => (
             <FilterChip
@@ -77,11 +77,11 @@ export function Listing({ fixedCategory, title, subtitle }: {
         </div>
       )}
 
-      <div className="grid-3">
+      <div className="grid grid-cols-1 gap-[22px] md:grid-cols-2 2xl:grid-cols-3">
         {products.isPending && <CardSkeleton count={6} height={330} />}
 
         {products.isError && (
-          <div style={{ gridColumn: '1 / -1' }}>
+          <div className="col-span-full">
             <ErrorState
               title="Could not load these products"
               detail="This is our end, not yours. Try again in a moment."
@@ -104,7 +104,7 @@ export function Listing({ fixedCategory, title, subtitle }: {
       )}
 
       {products.data && products.data.totalPages > 1 && (
-        <nav aria-label="Pages" style={{ display: 'flex', justifyContent: 'center', gap: 10, marginTop: 40 }}>
+        <nav aria-label="Pages" className="mt-10 flex justify-center gap-2.5">
           <button
             type="button"
             className="btn btn-secondary"
@@ -114,7 +114,7 @@ export function Listing({ fixedCategory, title, subtitle }: {
             ← Previous
           </button>
 
-          <span style={{ alignSelf: 'center', fontSize: 14, color: 'var(--color-neutral-700)' }}>
+          <span className="self-center text-sm text-neutral-700">
             Page {products.data.page} of {products.data.totalPages}
           </span>
 

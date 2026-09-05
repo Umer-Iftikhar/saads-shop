@@ -1,0 +1,259 @@
+/*  The one stylesheet.
+    ------------------------------------------------------------------------
+    Tailwind, the design system's theme, and the handful of things that are
+    genuinely CSS rather than markup: element defaults, focus, and the
+    design-system primitives that carry several states each.
+
+    Layout lives in the components as utilities — there are no `.hero` or
+    `.with-rail` rules here, because a grid that changes shape at three
+    breakpoints is easier to read beside the markup it shapes than in a file
+    three directories away.                                                  */
+
+@import url('https://fonts.googleapis.com/css2?family=Caprasimo:wght@400&family=Figtree:wght@400;600;700&display=swap');
+
+@import "tailwindcss";
+@import "./theme.css";
+
+/*  Class names are found by scanning these files. The default scan already
+    covers src/, and this makes it explicit rather than implied.             */
+@source "../";
+
+@layer base {
+  html { -webkit-text-size-adjust: 100%; }
+
+  body {
+    background: var(--color-bg);
+    color: var(--color-text);
+    font-family: var(--font-body);
+    font-size: 15px;
+    line-height: 1.55;
+    -webkit-font-smoothing: antialiased;
+  }
+
+  /*  Headings carry the display face by default. Sizes are set per use in the
+      markup; these are the fallbacks for prose that does not.               */
+  h1, h2, h3, h4, h5, h6 {
+    font-family: var(--font-heading);
+    font-weight: 400;
+    line-height: 1.12;
+    letter-spacing: -0.015em;
+    margin: 0 0 --spacing(2);
+  }
+  h1 { font-size: 42px; }
+  h2 { font-size: 32px; }
+  h3 { font-size: 25px; }
+  h4 { font-size: 20px; }
+  h5 { font-size: 16px; }
+  h6 { font-size: 13px; letter-spacing: 0.08em; text-transform: uppercase; }
+
+  p { margin: 0 0 --spacing(3); }
+
+  a {
+    color: var(--color-accent-700);
+    text-decoration: none;
+    text-underline-offset: 3px;
+  }
+  a:hover { color: var(--color-accent-600); text-decoration: underline; }
+
+  img { display: block; max-width: 100%; }
+
+  /*  Keyboard focus is always visible. The prototype ships this and it is
+      kept — no `outline: none` anywhere without a replacement.              */
+  :focus { outline: none; }
+  :focus-visible { outline: 2px solid var(--color-accent); outline-offset: 2px; }
+  ::selection { background: color-mix(in srgb, var(--color-accent) 30%, transparent); }
+
+  @media (prefers-reduced-motion: reduce) {
+    *, *::before, *::after {
+      animation-duration: 0.01ms !important;
+      animation-iteration-count: 1 !important;
+      transition-duration: 0.01ms !important;
+      scroll-behavior: auto !important;
+    }
+  }
+}
+
+/*  ── the design system's primitives ──────────────────────────────────────
+    Each of these is a control the design specifies once and the app repeats
+    dozens of times, in several states. Written as component classes so a
+    button is a button everywhere; everything else — layout, spacing between
+    things, one-off colour — is a utility in the markup.                     */
+@layer components {
+
+  /*  The storefront's frame: centred at the design's canvas width, with
+      gutters that step down twice on the way to a phone. Every section of
+      every storefront page sits in one, which is the only reason it is a
+      class rather than five utilities repeated thirty times.                */
+  .page { @apply mx-auto w-full max-w-storefront px-4 sm:px-6 xl:px-10; }
+
+  /* ── buttons ───────────────────────────────────────────────────────────
+     Real <button> elements throughout. The prototype used divs with onClick;
+     that is a defect, not a style, and is corrected here.                   */
+  .btn {
+    @apply inline-flex items-center justify-center gap-1.5 cursor-pointer
+           font-heading text-sm/[1.2] text-text no-underline
+           bg-transparent border border-transparent rounded-full
+           px-[15.8px] py-2 transition-colors duration-100;
+  }
+  .btn:hover { text-decoration: none; }
+  .btn:disabled { @apply opacity-45 cursor-not-allowed; }
+
+  .btn-primary { @apply bg-accent text-bg; }
+  .btn-primary:hover:not(:disabled)  { @apply bg-accent-600 text-bg; }
+  .btn-primary:active:not(:disabled) { @apply bg-accent-700; }
+
+  .btn-secondary { @apply border-divider; }
+  .btn-secondary:hover:not(:disabled)  { background: color-mix(in srgb, var(--color-text) 7%, transparent); }
+  .btn-secondary:active:not(:disabled) { background: color-mix(in srgb, var(--color-text) 14%, transparent); }
+
+  .btn-ghost { @apply text-accent-700 px-1; }
+  .btn-ghost:hover:not(:disabled) { background: color-mix(in srgb, var(--color-accent) 10%, transparent); }
+
+  .btn-icon  { @apply w-9 h-9 p-0 rounded-full; }
+  .btn-block { @apply w-full; }
+  .btn-lg    { @apply text-base px-[26px] py-[13px]; }
+
+  /* ── chips ─────────────────────────────────────────────────────────────
+     The pill filters and size selectors the design uses on the listing, the
+     product page, the set builder and the panel's status bar.               */
+  .chip {
+    @apply inline-flex items-center gap-1.5 cursor-pointer
+           px-5 py-[9px] rounded-full text-sm font-body
+           border-0 bg-surface text-text transition-colors duration-100;
+  }
+  .chip:hover { background: color-mix(in srgb, var(--color-text) 7%, transparent); }
+  .chip[aria-pressed='true']       { @apply bg-accent text-bg font-bold; }
+  .chip[aria-pressed='true']:hover { @apply bg-accent-600; }
+
+  /*  On a touch screen every control clears the 44px target the WCAG
+      pointer-size criterion asks for. Scoped to coarse pointers so the
+      desktop layout keeps the compact proportions of the design.            */
+  @media (pointer: coarse) {
+    .btn, .chip { min-height: 44px; }
+    .btn-icon   { width: 44px; height: 44px; }
+  }
+
+  /* ── forms ─────────────────────────────────────────────────────────────
+     One input rule for every control, including selects and textareas, so a
+     date field and a text field are the same object on screen.              */
+  .input {
+    @apply w-full min-h-9 px-3.5 py-1.5 text-sm text-text
+           bg-surface border border-divider rounded-full;
+    font: inherit;
+    font-size: 14px;
+    caret-color: var(--color-accent);
+  }
+  .input:hover { border-color: color-mix(in srgb, var(--color-text) 45%, transparent); }
+  .input:focus-visible { @apply border-accent; outline-offset: 0; }
+
+  textarea.input { @apply min-h-[90px] rounded-md resize-y; }
+
+  /*  A field in error announces itself with more than colour: the border
+      thickens and the message below carries a glyph.                        */
+  .input[aria-invalid='true'] { @apply border-accent-700 border-2; }
+
+  .field-error {
+    @apply flex items-start gap-1 mt-1 text-xs text-accent-700;
+  }
+  .field-error::before { content: '!'; @apply font-bold; }
+
+  /* ── cards, tags, tables ───────────────────────────────────────────────*/
+  .card {
+    @apply flex flex-col gap-2 p-3 rounded-card bg-surface;
+  }
+  .card-kicker {
+    @apply text-[10px] uppercase tracking-[0.1em] text-accent-700;
+  }
+
+  .tag {
+    @apply inline-flex items-center gap-1 whitespace-nowrap
+           px-2.5 py-[3px] rounded-full text-[11px] tracking-[0.02em];
+  }
+  .tag-accent   { @apply bg-accent-100   text-accent-800; }
+  .tag-accent-2 { @apply bg-accent-2-100 text-accent-2-800; }
+  .tag-neutral  { @apply bg-neutral-100  text-neutral-800; }
+  .tag-outline  { @apply border border-accent text-accent-700; }
+
+  .table { @apply w-full border-collapse text-sm; }
+  .table th {
+    @apply text-left p-2 text-[11px] uppercase tracking-[0.08em]
+           whitespace-nowrap border-b border-divider;
+    color: color-mix(in srgb, var(--color-text) 60%, transparent);
+  }
+  .table td {
+    @apply p-2;
+    border-bottom: 1px solid color-mix(in srgb, var(--color-text) 8%, transparent);
+  }
+  .table tbody tr:hover { background: color-mix(in srgb, var(--color-text) 4%, transparent); }
+
+  /* ── the panel's navigation ────────────────────────────────────────────*/
+  .admin-nav-item {
+    @apply flex items-center justify-between gap-2.5
+           px-3 py-2.5 rounded-full text-sm text-neutral-300 no-underline;
+  }
+  .admin-nav-item:hover {
+    @apply text-neutral-100 no-underline;
+    background: rgba(245, 234, 216, 0.08);
+  }
+  .admin-nav-item.is-active { @apply bg-accent text-bg font-bold; }
+
+  .admin-nav-badge {
+    @apply px-2 rounded-full text-[11px] bg-accent-2-700 text-accent-2-100;
+  }
+  .admin-nav-item.is-active .admin-nav-badge { background: rgba(245, 234, 216, 0.3); }
+
+  /* ── toggle ────────────────────────────────────────────────────────────
+     A real checkbox drives it — the design's div-with-a-knob was invisible to
+     the keyboard and to assistive tech.                                     */
+  .toggle-track {
+    @apply flex justify-start flex-none w-[46px] h-[26px] p-[3px]
+           rounded-full bg-neutral-400 transition-colors duration-150;
+  }
+  .toggle-knob {
+    @apply w-5 h-5 rounded-full bg-bg transition-transform duration-150;
+  }
+  .toggle-input:checked + .toggle-track { @apply bg-accent; }
+  .toggle-input:checked + .toggle-track .toggle-knob { @apply translate-x-5; }
+  .toggle-input:focus-visible + .toggle-track {
+    outline: 2px solid var(--color-accent);
+    outline-offset: 2px;
+  }
+}
+
+/*  ── utilities the design needs and Tailwind does not ship ───────────────*/
+
+/*  The filter that stops the woven gradients reading as flat colour. Real
+    photographs will want it too.                                            */
+@utility washed {
+  filter: saturate(0.6) contrast(0.85) brightness(1.1) opacity(0.94);
+}
+
+/*  Display type in the design runs far past the type scale — 84px on the home
+    hero, 70px on the confirmation. That oversized treatment was an explicit
+    ask, so it is kept and made to reflow with clamp() rather than dropped.   */
+@utility display-hero {
+  font-size: clamp(44px, 6.6vw, 84px);
+  line-height: 0.94;
+  letter-spacing: -0.03em;
+}
+@utility display-page {
+  font-size: clamp(34px, 4.7vw, 60px);
+  line-height: 1;
+  letter-spacing: -0.02em;
+}
+@utility display-section { font-size: clamp(26px, 3vw, 38px); }
+@utility display-thanks  { font-size: clamp(44px, 5.5vw, 70px); line-height: 1; }
+
+/*  Off-screen until focused — the skip link, and nothing else.              */
+@utility skip-link {
+  position: absolute;
+  left: -9999px;
+  top: 0;
+  z-index: 100;
+  padding: 12px 20px;
+  border-radius: 0 0 var(--radius-md) 0;
+  background: var(--color-accent);
+  color: var(--color-bg);
+
+  &:focus { left: 0; }
+}

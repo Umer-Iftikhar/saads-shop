@@ -19,42 +19,42 @@ interface SwatchProps {
  * cannot see.
  */
 export function Swatch({ name, colorValue, weave, size = 54, selected = false, onSelect }: SwatchProps) {
+  /*  The ring and the cloth are the two things a utility class cannot know:
+      the ring depends on selection, the cloth is generated per colour, and the
+      size is a prop. Everything else is a class.                            */
+  const className = `washed grid place-items-center rounded-full border-0 p-0
+                     ${onSelect ? 'cursor-pointer' : 'cursor-default'}
+                     ${selected ? 'shadow-[0_0_0_3px_var(--color-accent)]' : 'shadow-sm'}`;
+
   const style: React.CSSProperties = {
     width: size,
     height: size,
-    borderRadius: '50%',
     background: fabricBackground(colorValue, weave),
-    boxShadow: selected ? '0 0 0 3px var(--color-accent)' : 'var(--shadow-sm)',
-    border: 'none',
-    cursor: onSelect ? 'pointer' : 'default',
-    display: 'grid',
-    placeItems: 'center',
-    padding: 0,
   };
 
   const content = (
     <span
       aria-hidden="true"
-      style={{
-        color: '#f5ead8',
-        fontSize: size * 0.42,
-        lineHeight: 1,
-        textShadow: '0 1px 2px rgba(46,43,37,.45)',
-        visibility: selected ? 'visible' : 'hidden',
-      }}
+      className={`leading-none text-bg [text-shadow:0_1px_2px_rgba(46,43,37,.45)]
+                  ${selected ? 'visible' : 'invisible'}`}
+      style={{ fontSize: size * 0.42 }}
     >
       ✓
     </span>
   );
 
   if (!onSelect) {
-    return <span className="washed" style={style} role="img" aria-label={fabricLabel(name, weave)}>{content}</span>;
+    return (
+      <span className={className} style={style} role="img" aria-label={fabricLabel(name, weave)}>
+        {content}
+      </span>
+    );
   }
 
   return (
     <button
       type="button"
-      className="washed"
+      className={className}
       style={style}
       onClick={onSelect}
       aria-pressed={selected}
@@ -106,7 +106,7 @@ export function SwatchGroup({
       role="radiogroup"
       aria-label={label}
       onKeyDown={onKeyDown}
-      style={{ display: 'flex', gap: 12, flexWrap: 'wrap' }}
+      className="flex flex-wrap gap-3"
     >
       {swatches.map(swatch => (
         <Swatch

@@ -91,13 +91,13 @@ export function Cart() {
 
   if (cart.items.length === 0) {
     return (
-      <main id="main" className="page page-pad" style={{ paddingBlock: 40 }}>
-        <h1 className="display-page" style={{ margin: '0 0 26px' }}>Your cart</h1>
+      <main id="main" className="page py-10">
+        <h1 className="display-page mb-6 mt-0">Your cart</h1>
         <EmptyState
           title="Nothing in the cart yet"
           detail="Pick a bridal set, or build one from scratch with the cloth you like."
           action={
-            <div style={{ display: 'flex', gap: 10, justifyContent: 'center', flexWrap: 'wrap' }}>
+            <div className="flex flex-wrap justify-center gap-2.5">
               <Link to="/wedding-sets" className="btn btn-primary">See wedding sets</Link>
               <Link to="/build-your-set" className="btn btn-secondary">Build your set</Link>
             </div>
@@ -108,36 +108,35 @@ export function Cart() {
   }
 
   return (
-    <main id="main" className="page page-pad" style={{ paddingBlock: '36px 64px' }}>
-      <h1 className="display-page" style={{ margin: '0 0 26px' }}>Your cart</h1>
+    <main id="main" className="page pb-16 pt-9">
+      <h1 className="display-page mb-6 mt-0">Your cart</h1>
 
-      <div className="with-rail">
+      <div className="grid grid-cols-1 items-start gap-8 2xl:grid-cols-[1fr_360px]">
         {/* ── lines ────────────────────────────────────────────────── */}
-        <div style={{ display: 'flex', flexDirection: 'column', gap: 14 }}>
+        <div className="flex flex-col gap-3.5">
           {cart.items.map(item => {
             const key = cartKey(item);
 
+            // A row on a desktop and a wrapped stack on a phone, where five
+            // columns would each be too narrow to touch.
             return (
-              <div key={key} className="card cart-line">
+              <div key={key} className="card flex-row flex-wrap items-center gap-3 p-4 sm:gap-[18px]">
                 <div
-                  className="washed"
+                  className="washed h-[88px] w-[88px] flex-none rounded-[20px]"
                   aria-hidden="true"
-                  style={{
-                    flex: 'none', width: 88, height: 88, borderRadius: 20,
-                    background: fabricBackground(item.swatchColorValue, item.swatchWeave),
-                  }}
+                  style={{ background: fabricBackground(item.swatchColorValue, item.swatchWeave) }}
                 />
 
-                <div style={{ flex: 1, minWidth: 160 }}>
-                  <Link to={`/product/${item.slug}`} style={{ fontFamily: 'var(--font-heading)', fontSize: 20, color: 'inherit' }}>
+                <div className="min-w-40 flex-1">
+                  <Link to={`/product/${item.slug}`} className="font-heading text-xl text-text">
                     {item.name}
                   </Link>
-                  <div style={{ fontSize: 13, color: 'var(--color-neutral-600)', marginTop: 3 }}>
+                  <div className="mt-[3px] text-[13px] text-neutral-600">
                     {[item.bedSize, item.swatchName, item.pieces].filter(Boolean).join(' · ')}
                   </div>
                 </div>
 
-                <div style={{ display: 'flex', alignItems: 'center', gap: 10 }}>
+                <div className="flex items-center gap-2.5">
                   <button
                     type="button"
                     className="btn btn-secondary btn-icon"
@@ -149,7 +148,7 @@ export function Cart() {
 
                   {/*  The quantity is a live region so a screen-reader user
                       hears it change without re-reading the whole row.      */}
-                  <span style={{ width: 24, textAlign: 'center', fontWeight: 700 }} aria-live="polite">
+                  <span className="w-6 text-center font-bold" aria-live="polite">
                     {item.quantity}
                   </span>
 
@@ -163,13 +162,13 @@ export function Cart() {
                   </button>
                 </div>
 
-                <div style={{ width: 104, textAlign: 'right', fontWeight: 700 }}>
+                <div className="w-[104px] text-right font-bold">
                   {formatPkr(item.price * item.quantity)}
                 </div>
 
                 <button
                   type="button"
-                  className="btn btn-ghost"
+                  className="btn btn-ghost ml-auto sm:ml-0"
                   onClick={() => cart.remove(key)}
                   aria-label={`Remove ${item.name} from the cart`}
                 >
@@ -180,55 +179,48 @@ export function Cart() {
           })}
 
           {cart.items.some(i => i.bedSize) && (
-            <div style={{
-              display: 'flex', alignItems: 'center', gap: 14, padding: '20px 22px',
-              borderRadius: 'var(--radius-lg)', background: 'var(--color-accent-2-100)',
-              color: 'var(--color-accent-2-800)', fontSize: 14,
-            }}>
+            <div className="flex items-center gap-3.5 rounded-lg bg-accent-2-100 px-5 py-5 text-sm text-accent-2-800">
               Measurements needed for the stitching — we will call before we cut.
             </div>
           )}
         </div>
 
         {/* ── checkout ─────────────────────────────────────────────── */}
-        <form className="card elev-md" style={{ padding: 24, gap: 0 }} onSubmit={submit} noValidate>
-          <h2 style={{ fontSize: 23, marginBottom: 14 }}>Checkout</h2>
+        <form className="card gap-0 p-6 shadow-md" onSubmit={submit} noValidate>
+          <h2 className="mb-3.5 text-[23px]">Checkout</h2>
 
-          <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: 14, padding: '7px 0' }}>
+          <div className="flex justify-between py-[7px] text-sm">
             <span>Items</span><span>{formatPkr(cart.subtotal)}</span>
           </div>
-          <div style={{
-            display: 'flex', justifyContent: 'space-between', fontSize: 14,
-            padding: '7px 0', borderBottom: '1px solid var(--color-divider)',
-          }}>
+          <div className="flex justify-between border-b border-divider py-[7px] text-sm">
             <span>Delivery in {settings.data?.city ?? 'Rawalpindi'}</span>
             <span>{deliveryCharge === 0 ? 'Free' : formatPkr(deliveryCharge)}</span>
           </div>
-          <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'baseline', padding: '14px 0 4px' }}>
-            <span style={{ fontSize: 13, color: 'var(--color-neutral-600)' }}>To pay</span>
-            <span style={{ fontFamily: 'var(--font-heading)', fontSize: 28 }}>
+          <div className="flex items-baseline justify-between pb-1 pt-3.5">
+            <span className="text-[13px] text-neutral-600">To pay</span>
+            <span className="font-heading text-[28px]">
               {formatPkr(cart.subtotal + deliveryCharge)}
             </span>
           </div>
-          <p style={{ fontSize: 11, color: 'var(--color-neutral-600)', margin: '0 0 18px' }}>
+          <p className="mb-4 mt-0 text-[11px] text-neutral-600">
             The shop confirms the final total when it takes the order.
           </p>
 
-          <fieldset style={{ border: 0, padding: 0, margin: '0 0 18px' }}>
-            <legend style={{ fontSize: 12, color: 'var(--color-neutral-600)', marginBottom: 10, padding: 0 }}>
+          <fieldset className="mb-4 border-0 p-0">
+            <legend className="mb-2.5 p-0 text-xs text-neutral-600">
               HOW WOULD YOU LIKE TO PAY?
             </legend>
 
-            <div style={{ display: 'flex', flexDirection: 'column', gap: 11 }}>
+            <div className="flex flex-col gap-2.5">
               {available.map(option => (
-                <label key={option} className="radio" style={{ display: 'flex', alignItems: 'center', gap: 10, fontSize: 14 }}>
+                <label key={option} className="flex items-center gap-2.5 text-sm">
                   <input
                     type="radio"
                     name="paymentMethod"
                     value={option}
                     checked={method === option}
                     onChange={() => setMethod(option)}
-                    style={{ accentColor: 'var(--color-accent)', width: 16, height: 16 }}
+                    className="h-4 w-4 accent-accent"
                   />
                   {METHOD_LABELS[option]}
                 </label>
@@ -294,18 +286,14 @@ export function Cart() {
           </Field>
 
           {formError && (
-            <div role="alert" style={{
-              margin: '10px 0', padding: '12px 16px', borderRadius: 'var(--radius-md)',
-              background: 'var(--color-accent-100)', color: 'var(--color-accent-800)', fontSize: 14,
-            }}>
+            <div role="alert" className="my-2.5 rounded-md bg-accent-100 px-4 py-3 text-sm text-accent-800">
               {formError}
             </div>
           )}
 
           <button
             type="submit"
-            className="btn btn-primary btn-block"
-            style={{ padding: 13, marginTop: 6 }}
+            className="btn btn-primary btn-block mt-1.5 p-3"
             disabled={placeOrder.isPending}
           >
             {placeOrder.isPending ? 'Placing your order…' : 'Place order'}

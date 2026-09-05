@@ -76,6 +76,10 @@ for f in "$HERE"/procedures/*.sql; do run_sql "$f"; done
 echo "Reference data..."
 run_sql "$HERE/seed/01_reference.sql"
 run_sql "$HERE/seed/02_catalog.sql"
+# The first Owner. Nothing else can create it — staff accounts are made by an
+# Owner, and a fresh database has none. Read the header of the file: the
+# password is public and is meant to be changed at the first sign-in.
+run_sql "$HERE/seed/04_owner.sql"
 
 if [[ "$SEED_DEMO" -eq 1 ]]; then
     echo "Demo data..."

@@ -27,8 +27,8 @@ export function Field({
   const describedBy = [error ? errorId : null, hint ? hintId : null].filter(Boolean).join(' ') || undefined;
 
   return (
-    <div className="field" style={{ marginBottom: 10 }}>
-      <label htmlFor={id}>{label}</label>
+    <div className="block mb-2.5">
+      <label htmlFor={id} className="block mb-1 text-xs text-text/70">{label}</label>
 
       {children({
         id,
@@ -37,7 +37,7 @@ export function Field({
       })}
 
       {hint && !error && (
-        <div id={hintId} style={{ fontSize: 12, color: 'var(--color-neutral-600)', marginTop: 4 }}>
+        <div id={hintId} className="mt-1 text-xs text-neutral-600">
           {hint}
         </div>
       )}

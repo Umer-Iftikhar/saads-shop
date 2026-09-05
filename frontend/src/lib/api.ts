@@ -55,6 +55,15 @@ interface RequestOptions {
   signal?: AbortSignal;
   /** Sends the refresh cookie. Only the auth endpoints need it. */
   withCredentials?: boolean;
+  /**
+   * Overrides the stored access token for this one call.
+   *
+   * Enrolling an authenticator during a first sign-in is the case that needs
+   * it: at that moment there is no session, only the short-lived challenge
+   * token the login step returned. It carries no roles, so it opens the
+   * enrolment endpoints and nothing else.
+   */
+  bearer?: string;
 }
 
 /** Set after sign-in. Held in memory only — never localStorage, where XSS could read it. */
@@ -69,11 +78,13 @@ export function getAccessToken(): string | null {
 }
 
 async function request<T>(path: string, options: RequestOptions = {}): Promise<T> {
-  const { method = 'GET', body, signal, withCredentials = false } = options;
+  const { method = 'GET', body, signal, withCredentials = false, bearer } = options;
 
   const headers: Record<string, string> = { Accept: 'application/json' };
   if (body !== undefined) headers['Content-Type'] = 'application/json';
-  if (accessToken) headers.Authorization = `Bearer ${accessToken}`;
+
+  const token = bearer ?? accessToken;
+  if (token) headers.Authorization = `Bearer ${token}`;
 
   let response: Response;
 

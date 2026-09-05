@@ -32,8 +32,27 @@ procedures/   grouped by area — catalogue, orders, operations, shop, identity
 seed/         01 reference (roles, categories, cloths, settings)
               02 catalogue (the ten products)
               03 demo      (optional history)
+              04 owner     (the first staff account — see below)
 apply.sh
 ```
+
+## The first Owner
+
+Staff accounts are created by an Owner through `POST /api/auth/staff`, which
+leaves exactly one account nobody can create that way: the first.
+[`seed/04_owner.sql`](seed/04_owner.sql) fills that gap and nothing else — it
+inserts only when the account is absent, so re-running it can never reset a
+password that has since been changed or restore a role an Owner removed.
+
+```
+saad@saadsshop.pk / ChangeMe!Saad2026
+```
+
+**That password is in the repository, so treat it as public.** Sign in once,
+enrol an authenticator, change it. Until the second factor is enrolled the
+account cannot reach the panel at all — `/auth/login` hands back a challenge
+token and nothing else — which is the only reason shipping a known password
+here is tolerable.
 
 ## Verifying a change
 

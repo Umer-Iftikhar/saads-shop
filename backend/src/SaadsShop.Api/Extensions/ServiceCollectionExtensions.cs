@@ -1,5 +1,6 @@
 using System.Text;
 using System.Threading.RateLimiting;
+using Dapper;
 using Microsoft.AspNetCore.Authentication.Google;
 using Microsoft.AspNetCore.Authentication;
 using Microsoft.AspNetCore.Authentication.JwtBearer;
@@ -52,6 +53,10 @@ public static class ServiceCollectionExtensions
 
     public static IServiceCollection AddShopServices(this IServiceCollection services)
     {
+        //  Before any repository runs: SqlClient refuses a DateOnly parameter,
+        //  and the failure surfaces at the first query that carries a date.
+        SqlMapper.AddTypeHandler(new DateOnlyTypeHandler());
+
         services.AddSingleton<ISqlConnectionFactory, SqlConnectionFactory>();
 
         // Scoped: one instance per request, matching the lifetime of the
