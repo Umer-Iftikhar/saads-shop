@@ -77,6 +77,13 @@ public sealed class CatalogCommandRepository(ISqlConnectionFactory connectionFac
             new { ProductId = productId, ActorUserId = actorUserId },
             ct);
 
+    public Task<ProcedureResult<bool>> RestoreProductAsync(
+        int productId, string? actorUserId, CancellationToken ct = default)
+        => ExecuteAsync(
+            StoredProcedures.ProductRestore,
+            new { ProductId = productId, ActorUserId = actorUserId },
+            ct);
+
     private sealed class CreatedProduct
     {
         public int?    ProductId { get; set; }

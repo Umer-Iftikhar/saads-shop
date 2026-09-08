@@ -16,6 +16,14 @@ public interface ICatalogCommandRepository
     Task<ProcedureResult<bool>> UpdateProductAsync(
         int productId, ProductEditorRequest request, string? actorUserId, CancellationToken ct = default);
 
+    /// <summary>
+    /// Archives a product. Nothing here deletes one: an order line references
+    /// it, and removing the row would rewrite what a customer was charged.
+    /// </summary>
     Task<ProcedureResult<bool>> DeleteProductAsync(
+        int productId, string? actorUserId, CancellationToken ct = default);
+
+    /// <summary>Puts an archived product back in the shop, exactly as it was.</summary>
+    Task<ProcedureResult<bool>> RestoreProductAsync(
         int productId, string? actorUserId, CancellationToken ct = default);
 }

@@ -109,6 +109,30 @@ BEGIN
 END
 GO
 
+/*  Product names and slugs are unique among live products only.
+    ------------------------------------------------------------------------
+    Created with the table in 01_tables.sql; rebuilt here for databases made
+    before archiving existed, where both indexes span every row. Left as they
+    were, an archived product keeps its name forever and the owner cannot
+    create a replacement under it.                                            */
+IF EXISTS (SELECT 1 FROM sys.indexes
+           WHERE name = N'UX_Products_Name' AND object_id = OBJECT_ID(N'dbo.Products')
+             AND has_filter = 0)
+BEGIN
+    DROP INDEX UX_Products_Name ON dbo.Products;
+    CREATE UNIQUE INDEX UX_Products_Name ON dbo.Products (Name) WHERE DeletedAt IS NULL;
+END
+GO
+
+IF EXISTS (SELECT 1 FROM sys.indexes
+           WHERE name = N'UX_Products_Slug' AND object_id = OBJECT_ID(N'dbo.Products')
+             AND has_filter = 0)
+BEGIN
+    DROP INDEX UX_Products_Slug ON dbo.Products;
+    CREATE UNIQUE INDEX UX_Products_Slug ON dbo.Products (Slug) WHERE DeletedAt IS NULL;
+END
+GO
+
 /*  ------------------------------------------------------------------------
     Considered and rejected
     ------------------------------------------------------------------------

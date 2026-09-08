@@ -45,6 +45,7 @@ public sealed class ProductSummaryResponse
     public int?    DefaultSwatchId  { get; init; }
     public string? SwatchColorValue { get; init; }
     public string? SwatchWeave      { get; init; }
+
 }
 
 public sealed class ProductDetailResponse
@@ -87,6 +88,12 @@ public sealed class ProductAdminResponse
     public int?    DefaultSwatchId  { get; init; }
     public string? SwatchColorValue { get; init; }
     public string? SwatchWeave      { get; init; }
+
+    /// <summary>Set when the product is archived rather than in the shop.</summary>
+    public DateTime? DeletedAt      { get; init; }
+
+    /// <summary>Who archived it, so the panel can say so.</summary>
+    public string?   DeletedBy      { get; init; }
 }
 
 /// <summary>A page of rows plus what the client needs to render paging.</summary>

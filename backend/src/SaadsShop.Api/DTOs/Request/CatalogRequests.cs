@@ -23,6 +23,12 @@ public sealed class ProductListQuery
 
     [Range(1, 100, ErrorMessage = "Page size must be between 1 and 100.")]
     public int PageSize { get; init; } = 24;
+
+    /// <summary>
+    /// The panel's archive view. Ignored on the storefront, which never sends
+    /// it — the admin listing is the only caller that passes it through.
+    /// </summary>
+    public bool ArchivedOnly { get; init; }
 }
 
 /// <summary>Create/update payload from the product editor.</summary>

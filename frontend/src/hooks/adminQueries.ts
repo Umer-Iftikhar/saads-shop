@@ -128,7 +128,9 @@ export function useCustomers(query: CustomerSearch) {
   });
 }
 
-export function useAdminProducts(query: { search?: string; page?: number; pageSize?: number }) {
+export function useAdminProducts(
+  query: { search?: string; page?: number; pageSize?: number; archivedOnly?: boolean },
+) {
   return useQuery({
     queryKey: ['admin', 'products', query],
     queryFn: ({ signal }) =>
@@ -152,6 +154,39 @@ export function useSaveProduct(productId?: number) {
       productId
         ? api.put<void>(`/admin/products/${productId}`, body)
         : api.post<{ productId: number }>('/admin/products', body),
+    onSuccess: () => {
+      void client.invalidateQueries({ queryKey: ['admin'] });
+      void client.invalidateQueries({ queryKey: ['catalog'] });
+    },
+  });
+}
+
+/**
+ * Archiving and un-archiving a product.
+ *
+ * Deliberately not called "delete": the row is never removed, because the
+ * order lines that name the product are the shop's own sales history. Both
+ * invalidate the storefront's cache as well as the panel's — an archived
+ * product has to leave the public catalogue, and a restored one has to
+ * reappear in it.
+ */
+export function useArchiveProduct() {
+  const client = useQueryClient();
+
+  return useMutation({
+    mutationFn: (productId: number) => api.del<void>(`/admin/products/${productId}`),
+    onSuccess: () => {
+      void client.invalidateQueries({ queryKey: ['admin'] });
+      void client.invalidateQueries({ queryKey: ['catalog'] });
+    },
+  });
+}
+
+export function useRestoreProduct() {
+  const client = useQueryClient();
+
+  return useMutation({
+    mutationFn: (productId: number) => api.post<void>(`/admin/products/${productId}/restore`),
     onSuccess: () => {
       void client.invalidateQueries({ queryKey: ['admin'] });
       void client.invalidateQueries({ queryKey: ['catalog'] });

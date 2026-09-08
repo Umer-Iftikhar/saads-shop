@@ -35,11 +35,23 @@ public sealed class AdminCatalogController(
                       StatusCodes.Status204NoContent);
 
     /// <summary>
-    /// Owner-only, and a soft delete: a product on past orders is hidden from
-    /// the shop rather than removed, so sales history stays intact.
+    /// Owner-only, and an archive rather than a delete: the row stays, so the
+    /// sales history that references it stays whole and the product can be put
+    /// back with <see cref="Restore"/>.
     /// </summary>
     [HttpDelete("{id:int}")]
     [Authorize(Policy = AuthPolicies.OwnerOnly)]
     public async Task<IActionResult> Delete(int id, CancellationToken ct)
         => FromResult(await writes.DeleteProductAsync(id, CurrentUserId, ct));
+
+    /// <summary>Puts an archived product back in the shop.</summary>
+    /// <remarks>
+    /// A POST rather than a DELETE-undo, because it is its own action and can
+    /// fail on its own terms — something else may have taken the name, or the
+    /// category it belonged to may have been switched off while it was away.
+    /// </remarks>
+    [HttpPost("{id:int}/restore")]
+    [Authorize(Policy = AuthPolicies.OwnerOnly)]
+    public async Task<IActionResult> Restore(int id, CancellationToken ct)
+        => FromResult(await writes.RestoreProductAsync(id, CurrentUserId, ct));
 }

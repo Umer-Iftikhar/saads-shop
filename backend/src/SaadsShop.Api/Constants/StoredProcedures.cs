@@ -20,6 +20,7 @@ public static class StoredProcedures
     public const string ProductCreate  = "usp_Product_Create";
     public const string ProductUpdate  = "usp_Product_Update";
     public const string ProductDelete  = "usp_Product_Delete";
+    public const string ProductRestore = "usp_Product_Restore";
 
     // ── Orders ─────────────────────────────────────────────────────────────
     public const string OrderCreate           = "usp_Order_Create";

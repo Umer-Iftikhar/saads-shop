@@ -99,6 +99,11 @@ CREATE OR ALTER PROCEDURE dbo.usp_Product_GetList
     @CategorySlug   NVARCHAR(64)  = NULL,
     @Search         NVARCHAR(128) = NULL,
     @IncludeInactive BIT          = 0,
+    /*  NULL = live products only (what the shop sells today).
+        1    = the archive, and nothing else — the panel's "Archived" view.
+        The storefront never sets either, so a customer cannot browse to an
+        archived product by guessing a query string.                          */
+    @ArchivedOnly   BIT           = NULL,
     @SortBy         NVARCHAR(24)  = N'Featured',
     @Page           INT           = 1,
     @PageSize       INT           = 24
@@ -115,7 +120,8 @@ BEGIN
         CategoryName NVARCHAR(64), Kicker NVARCHAR(48), Blurb NVARCHAR(280),
         Price DECIMAL(12,2), Pieces NVARCHAR(48), Stock INT, StitchingDays INT,
         DefaultSwatchId INT, SwatchName NVARCHAR(48), SwatchColorValue NVARCHAR(64),
-        SwatchWeave NVARCHAR(16), IsActive BIT, SortIndex INT IDENTITY(1,1)
+        SwatchWeave NVARCHAR(16), IsActive BIT,
+        DeletedAt DATETIME2(3), DeletedBy NVARCHAR(128), SortIndex INT IDENTITY(1,1)
     );
 
     BEGIN TRY
@@ -148,11 +154,15 @@ BEGIN
                 SELECT  p.ProductId, p.Name, p.Slug, p.CategoryId, c.Name AS CategoryName,
                         p.Kicker, p.Blurb, p.Price, p.Pieces, p.Stock, p.StitchingDays,
                         p.DefaultSwatchId, s.Name AS SwatchName, s.ColorValue AS SwatchColorValue,
-                        s.Weave AS SwatchWeave, p.IsActive, p.SoldCount, p.CreatedAt
+                        s.Weave AS SwatchWeave, p.IsActive, p.SoldCount, p.CreatedAt,
+                        p.DeletedAt, du.FullName AS DeletedBy
                 FROM    dbo.Products AS p
                 JOIN    dbo.Categories AS c ON c.CategoryId = p.CategoryId
                 LEFT JOIN dbo.Swatches AS s ON s.SwatchId = p.DefaultSwatchId
+                LEFT JOIN dbo.Users AS du ON du.Id = p.DeletedByUserId
                 WHERE   (@IncludeInactive = 1 OR p.IsActive = 1)
+                  AND   (CASE WHEN @ArchivedOnly = 1 THEN 1 ELSE 0 END
+                         = CASE WHEN p.DeletedAt IS NOT NULL THEN 1 ELSE 0 END)
                   AND   (@CategorySlug IS NULL OR c.Slug = @CategorySlug)
                   AND   (@SearchPattern IS NULL
                          OR p.Name  LIKE @SearchPattern ESCAPE N'\'
@@ -160,10 +170,12 @@ BEGIN
             )
             INSERT INTO #Page (ProductId, Name, Slug, CategoryId, CategoryName, Kicker, Blurb,
                                Price, Pieces, Stock, StitchingDays, DefaultSwatchId,
-                               SwatchName, SwatchColorValue, SwatchWeave, IsActive)
+                               SwatchName, SwatchColorValue, SwatchWeave, IsActive,
+                               DeletedAt, DeletedBy)
             SELECT  ProductId, Name, Slug, CategoryId, CategoryName, Kicker, Blurb,
                     Price, Pieces, Stock, StitchingDays, DefaultSwatchId,
-                    SwatchName, SwatchColorValue, SwatchWeave, IsActive
+                    SwatchName, SwatchColorValue, SwatchWeave, IsActive,
+                    DeletedAt, DeletedBy
             FROM    filtered
             ORDER BY
                 CASE WHEN @SortBy = N'PriceAsc'  THEN Price END ASC,
@@ -178,6 +190,8 @@ BEGIN
             FROM   dbo.Products AS p
             JOIN   dbo.Categories AS c ON c.CategoryId = p.CategoryId
             WHERE  (@IncludeInactive = 1 OR p.IsActive = 1)
+              AND  (CASE WHEN @ArchivedOnly = 1 THEN 1 ELSE 0 END
+                    = CASE WHEN p.DeletedAt IS NOT NULL THEN 1 ELSE 0 END)
               AND  (@CategorySlug IS NULL OR c.Slug = @CategorySlug)
               AND  (@SearchPattern IS NULL
                     OR p.Name  LIKE @SearchPattern ESCAPE N'\'
@@ -194,7 +208,7 @@ BEGIN
     /* --- single exit: fixed shape, always ------------------------------ */
     SELECT  ProductId, Name, Slug, CategoryId, CategoryName, Kicker, Blurb, Price,
             Pieces, Stock, StitchingDays, DefaultSwatchId, SwatchName,
-            SwatchColorValue, SwatchWeave, IsActive
+            SwatchColorValue, SwatchWeave, IsActive, DeletedAt, DeletedBy
     FROM    #Page
     ORDER BY SortIndex;
 
@@ -319,7 +333,7 @@ BEGIN
             SELECT @ResponseCode = 400, @ResponseMessage = N'Stitching days must be between 0 and 90.';
         ELSE IF @LowStockAt IS NULL OR @LowStockAt < 0 OR @LowStockAt > 100000
             SELECT @ResponseCode = 400, @ResponseMessage = N'Low-stock threshold is out of range.';
-        ELSE IF EXISTS (SELECT 1 FROM dbo.Products WHERE Name = @Name)
+        ELSE IF EXISTS (SELECT 1 FROM dbo.Products WHERE Name = @Name AND DeletedAt IS NULL)
             SELECT @ResponseCode = 409, @ResponseMessage = N'A product with that name already exists.';
         ELSE IF @DefaultSwatchId IS NOT NULL
                 AND NOT EXISTS (SELECT 1 FROM dbo.Swatches WHERE SwatchId = @DefaultSwatchId AND IsActive = 1)
@@ -336,7 +350,7 @@ BEGIN
                             N'''', N''), N'&', N'and'), N'.', N''), N',', N''), N' ', N'-');
             SET @Slug = LEFT(@Slug, 160);
 
-            IF EXISTS (SELECT 1 FROM dbo.Products WHERE Slug = @Slug)
+            IF EXISTS (SELECT 1 FROM dbo.Products WHERE Slug = @Slug AND DeletedAt IS NULL)
                 SET @Slug = LEFT(@Slug, 150) + N'-' + CAST(ABS(CHECKSUM(NEWID())) % 9999 AS NVARCHAR(8));
 
             BEGIN TRANSACTION;
@@ -411,7 +425,8 @@ BEGIN
             SELECT @ResponseCode = 400, @ResponseMessage = N'Price must be between Rs 0 and Rs 10,000,000.';
         ELSE IF @StitchingDays IS NULL OR @StitchingDays < 0 OR @StitchingDays > 90
             SELECT @ResponseCode = 400, @ResponseMessage = N'Stitching days must be between 0 and 90.';
-        ELSE IF EXISTS (SELECT 1 FROM dbo.Products WHERE Name = @Name AND ProductId <> @ProductId)
+        ELSE IF EXISTS (SELECT 1 FROM dbo.Products
+                        WHERE Name = @Name AND ProductId <> @ProductId AND DeletedAt IS NULL)
             SELECT @ResponseCode = 409, @ResponseMessage = N'Another product already uses that name.';
         ELSE IF @DefaultSwatchId IS NOT NULL
                 AND NOT EXISTS (SELECT 1 FROM dbo.Swatches WHERE SwatchId = @DefaultSwatchId AND IsActive = 1)
@@ -456,8 +471,11 @@ BEGIN
 END
 GO
 
-/*  Soft delete. A product referenced by an order line is never removed —
-    deleting it would tear a hole in the shop's own sales history.           */
+/*  Archive, never delete. Nothing in this application removes a product row:
+    an order line references it, and a hard delete would tear a hole in the
+    shop's own sales history — the customer's receipt would stop naming what
+    they bought. DeletedAt and DeletedByUserId record that the owner archived
+    it, which is what usp_Product_Restore undoes.                             */
 CREATE OR ALTER PROCEDURE dbo.usp_Product_Delete
     @ProductId   INT,
     @ActorUserId NVARCHAR(128) = NULL
@@ -473,18 +491,24 @@ BEGIN
             SELECT @ResponseCode = 400, @ResponseMessage = N'Product id is required.';
         ELSE IF NOT EXISTS (SELECT 1 FROM dbo.Products WHERE ProductId = @ProductId)
             SELECT @ResponseCode = 404, @ResponseMessage = N'That product no longer exists.';
-        ELSE IF EXISTS (SELECT 1 FROM dbo.OrderLines WHERE ProductId = @ProductId)
-        BEGIN
-            /*  Not an error the shopkeeper can fix by trying again — tell them
-                what actually happens instead, and do it.                     */
-            UPDATE dbo.Products SET IsActive = 0, UpdatedAt = SYSUTCDATETIME() WHERE ProductId = @ProductId;
-            SELECT @ResponseCode = 200,
-                   @ResponseMessage = N'This product is on past orders, so it was hidden from the shop rather than deleted.';
-        END
+        ELSE IF EXISTS (SELECT 1 FROM dbo.Products
+                        WHERE ProductId = @ProductId AND DeletedAt IS NOT NULL)
+            SELECT @ResponseCode = 409, @ResponseMessage = N'That product is already archived.';
         ELSE
         BEGIN
-            UPDATE dbo.Products SET IsActive = 0, UpdatedAt = SYSUTCDATETIME() WHERE ProductId = @ProductId;
-            SET @ResponseMessage = N'Product removed from the shop.';
+            UPDATE dbo.Products
+            SET    IsActive        = 0,
+                   DeletedAt       = SYSUTCDATETIME(),
+                   DeletedByUserId = @ActorUserId,
+                   UpdatedAt       = SYSUTCDATETIME()
+            WHERE  ProductId = @ProductId;
+
+            /*  Say what actually happened. "Deleted" would be a lie the
+                shopkeeper only discovers when they look for it later.        */
+            IF EXISTS (SELECT 1 FROM dbo.OrderLines WHERE ProductId = @ProductId)
+                SET @ResponseMessage = N'This product is on past orders, so it was archived rather than deleted. You can bring it back at any time.';
+            ELSE
+                SET @ResponseMessage = N'Product archived. You can bring it back at any time.';
         END
     END TRY
     BEGIN CATCH
@@ -492,6 +516,75 @@ BEGIN
         INSERT INTO dbo.ErrorLog (ProcedureName, ErrorNumber, ErrorMessage, ErrorLine, ErrorSeverity)
         VALUES (ERROR_PROCEDURE(), ERROR_NUMBER(), ERROR_MESSAGE(), ERROR_LINE(), ERROR_SEVERITY());
         SELECT @ResponseCode = 500, @ResponseMessage = N'Could not remove the product. Please try again.';
+    END CATCH
+
+    SELECT @ResponseCode AS ResponseCode, @ResponseMessage AS ResponseMessage;
+END
+GO
+
+/*  Bringing an archived product back.
+    ------------------------------------------------------------------------
+    The counterpart to usp_Product_Delete, and the reason that one archives
+    rather than deletes. Restoring returns the product to the storefront with
+    the stock, price and cloths it had — nothing about it was thrown away.
+
+    The name and slug are checked again on the way back: an owner may well have
+    created a replacement product under the same name while this one was
+    archived, and two live products cannot share either.
+*/
+CREATE OR ALTER PROCEDURE dbo.usp_Product_Restore
+    @ProductId   INT,
+    @ActorUserId NVARCHAR(128) = NULL
+AS
+BEGIN
+    SET NOCOUNT ON;
+    SET XACT_ABORT ON;
+
+    DECLARE @ResponseCode INT = 200, @ResponseMessage NVARCHAR(400) = N'OK';
+    DECLARE @Name NVARCHAR(128), @Slug NVARCHAR(160), @CategoryId INT, @DeletedAt DATETIME2(3);
+
+    BEGIN TRY
+        SELECT @Name = Name, @Slug = Slug, @CategoryId = CategoryId, @DeletedAt = DeletedAt
+        FROM   dbo.Products WHERE ProductId = @ProductId;
+
+        IF @ProductId IS NULL OR @ProductId <= 0
+            SELECT @ResponseCode = 400, @ResponseMessage = N'Product id is required.';
+        ELSE IF @Name IS NULL
+            SELECT @ResponseCode = 404, @ResponseMessage = N'That product no longer exists.';
+        ELSE IF @DeletedAt IS NULL
+            SELECT @ResponseCode = 409, @ResponseMessage = N'That product is not archived.';
+        ELSE IF EXISTS (SELECT 1 FROM dbo.Products
+                        WHERE Name = @Name AND ProductId <> @ProductId AND DeletedAt IS NULL)
+            SELECT @ResponseCode = 409,
+                   @ResponseMessage = N'Another product is using that name now. Rename it before bringing this one back.';
+        ELSE IF EXISTS (SELECT 1 FROM dbo.Products
+                        WHERE Slug = @Slug AND ProductId <> @ProductId AND DeletedAt IS NULL)
+            SELECT @ResponseCode = 409,
+                   @ResponseMessage = N'Another product is using that web address now.';
+        ELSE IF NOT EXISTS (SELECT 1 FROM dbo.Categories
+                            WHERE CategoryId = @CategoryId AND IsActive = 1)
+            /*  Its category was switched off while it was away; putting it back
+                would leave it on the storefront under a section nobody can
+                browse to.                                                     */
+            SELECT @ResponseCode = 409,
+                   @ResponseMessage = N'That product''s category is no longer in the shop. Move it to another category first.';
+        ELSE
+        BEGIN
+            UPDATE dbo.Products
+            SET    IsActive        = 1,
+                   DeletedAt       = NULL,
+                   DeletedByUserId = NULL,
+                   UpdatedAt       = SYSUTCDATETIME()
+            WHERE  ProductId = @ProductId;
+
+            SET @ResponseMessage = N'Product is back in the shop.';
+        END
+    END TRY
+    BEGIN CATCH
+        IF XACT_STATE() <> 0 ROLLBACK TRANSACTION;
+        INSERT INTO dbo.ErrorLog (ProcedureName, ErrorNumber, ErrorMessage, ErrorLine, ErrorSeverity)
+        VALUES (ERROR_PROCEDURE(), ERROR_NUMBER(), ERROR_MESSAGE(), ERROR_LINE(), ERROR_SEVERITY());
+        SELECT @ResponseCode = 500, @ResponseMessage = N'Could not bring the product back. Please try again.';
     END CATCH
 
     SELECT @ResponseCode AS ResponseCode, @ResponseMessage AS ResponseMessage;

@@ -205,6 +205,48 @@ forty would not. Every one is `CREATE OR ALTER`, so re-applying is safe.
 Every file is `CREATE OR ALTER` or guarded by an existence check, so `apply.sh` can be run
 against a fresh or an existing database with the same result.
 
+## Nothing is deleted
+
+No procedure in this database removes a row a person put there. "Delete" in the
+panel archives: `usp_Product_Delete` sets `IsActive = 0`, `DeletedAt` and
+`DeletedByUserId`, and `usp_Product_Restore` clears all three.
+
+The reason is the order lines. An `OrderLine` snapshots the product's name and
+the price it sold at, but it also *references* the product row, and the shop's
+sales history — best sellers, stock movements, what a customer actually bought —
+is built on those references. Deleting a product would tear a hole in the shop's
+own record of its trade.
+
+Two consequences worth knowing about:
+
+- **`UX_Products_Name` and `UX_Products_Slug` are filtered on `DeletedAt IS NULL`.**
+  Uniqueness applies among the products the shop *has*, not among every row ever
+  created. Otherwise an archived product holds its name forever, and an owner
+  making a replacement "Gulaab Bridal Set" is refused by a product they cannot
+  see. Every name check inside the procedures carries the same `DeletedAt IS NULL`,
+  so the checks and the indexes agree.
+- **Restoring can fail, and on its own terms.** Something else may have taken
+  the name while the product was away, or its category may have been switched
+  off. `usp_Product_Restore` reports both as `409` with a message that says what
+  to do about it.
+
+### The exceptions, and why they are exceptions
+
+Four things *are* deleted outright, and all four are credentials or scaffolding
+rather than records of what the shop did:
+
+| What | Where | Why it is a hard delete |
+| --- | --- | --- |
+| Spent refresh tokens | `usp_RefreshToken_Purge` | Keeping revoked credentials is a liability, not an audit trail. The rows that matter — the ones proving reuse — are kept until they expire. |
+| Recovery codes, on re-enrolment | `usp_RecoveryCode_Add` | Old codes must stop working the instant new ones are issued. A soft-deleted recovery code is a recovery code. |
+| An external login link | `usp_UserLogin_Remove` | `PK_UserLogins` is `(LoginProvider, ProviderKey)`. A soft-deleted row would keep that Google account permanently un-linkable to anyone else. |
+| A role assignment | `usp_Role_SetForUser` | Removing a role is not deleting a thing; the thing is the user, who stays. Re-granting is the restore. |
+| A product's cloth set | `usp_Product_Update` | The editor sends the complete set rather than a diff, so the old set is replaced wholesale. Nothing is lost that the new set does not state. |
+
+Staff accounts are deactivated (`Users.IsActive`), never removed — the same
+reasoning as products: they are named in `OrderStatusHistory` as the person who
+moved an order along.
+
 ## `QUOTED_IDENTIFIER` must be ON for any write
 
 `Products` carries **filtered indexes** (`IX_Products_LowStock`, `IX_Products_SoldCount`,

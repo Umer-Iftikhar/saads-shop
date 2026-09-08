@@ -147,7 +147,7 @@ public class CatalogAndSearchTests(ShopDatabase db)
     }
 
     [Fact]
-    public async Task A_product_on_past_orders_is_hidden_and_the_shopkeeper_is_told_so()
+    public async Task A_product_on_past_orders_says_why_it_was_archived_rather_than_deleted()
     {
         var productId = await db.AProductAsync(stock: 5);
         await new OrderCommandRepository(db.Connections)
@@ -156,7 +156,7 @@ public class CatalogAndSearchTests(ShopDatabase db)
         var removed = await Catalog.DeleteProductAsync(productId, null);
 
         Assert.True(removed.IsSuccess);
-        Assert.Contains("hidden", removed.ResponseMessage, StringComparison.OrdinalIgnoreCase);
+        Assert.Contains("past orders", removed.ResponseMessage, StringComparison.OrdinalIgnoreCase);
     }
 
     [Fact]

@@ -161,7 +161,8 @@ the order `apply.sh` uses, and calls the real repositories.
 | Checkout concurrency | Eight buyers race for one piece and exactly one wins; twenty buyers against five pieces sell exactly five and stock never goes negative; a part-available order rolls back whole; six simultaneous orders from one phone make one customer, not six |
 | Refresh tokens | Rotation, reuse detection, and that a replay revokes the whole family while leaving other devices signed in — plus ten tabs refreshing at once never leaving two usable tokens |
 | Order lifecycle | References unique under concurrency, prices taken from the shop and not the browser, a line keeping the name and price it sold at after the product is renamed, status moves recorded with who made them, and tracking that needs the phone as well as the reference |
-| Catalogue | Slugs, name conflicts, cloth sets replaced wholesale rather than merged, and removal that hides rather than deletes |
+| Catalogue | Slugs, name conflicts, cloth sets replaced wholesale rather than merged |
+| Archive and restore | That "delete" never removes a row, records who archived it and when, keeps it off the storefront and out of the ordinary list, and can be undone — including the two ways a restore is refused |
 | The date range | The third layer of the rule the browser and `[DateRange]` also apply |
 | Deployment | The scripts apply to an empty server; every name in `StoredProcedures` exists; nothing in the database is uncalled; no procedure returns a code the API cannot map; no procedure catches an error without logging it |
 
