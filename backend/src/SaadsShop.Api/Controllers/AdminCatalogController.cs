@@ -1,7 +1,9 @@
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
 using SaadsShop.Api.Constants;
+using SaadsShop.Api.DTOs.Internal;
 using SaadsShop.Api.DTOs.Request;
+using SaadsShop.Api.DTOs.Response;
 using SaadsShop.Api.Services.Interfaces.Commands;
 using SaadsShop.Api.Services.Interfaces.Queries;
 
@@ -43,6 +45,40 @@ public sealed class AdminCatalogController(
     [Authorize(Policy = AuthPolicies.OwnerOnly)]
     public async Task<IActionResult> Delete(int id, CancellationToken ct)
         => FromResult(await writes.DeleteProductAsync(id, CurrentUserId, ct));
+
+    /// <summary>
+    /// Uploads a photograph for a product.
+    /// </summary>
+    /// <remarks>
+    /// The size cap is enforced three times over, and each is doing a different
+    /// job: <see cref="RequestSizeLimitAttribute"/> makes Kestrel reject an
+    /// oversized body before it is buffered, the form-options limit stops the
+    /// multipart parser from accepting one section that large, and the service
+    /// checks the bytes it actually received. Only the first two prevent the
+    /// upload being read at all, which is the point of having them.
+    /// </remarks>
+    [HttpPost("{id:int}/image")]
+    [RequestSizeLimit(12 * 1024 * 1024)]
+    [RequestFormLimits(MultipartBodyLengthLimit = 12 * 1024 * 1024)]
+    public async Task<IActionResult> UploadImage(int id, IFormFile? file, CancellationToken ct)
+    {
+        if (file is null || file.Length == 0)
+        {
+            return Problem(OperationResult<ProductImageResponse>.Failure(
+                ResponseCodes.ValidationFailed, "Choose a photo to upload."));
+        }
+
+        await using var content = file.OpenReadStream();
+
+        return FromResult(await writes.SetProductImageAsync(
+            id, content, file.FileName, file.Length, CurrentUserId, ct));
+    }
+
+    /// <summary>Removes a product's photograph; the storefront draws the cloth again.</summary>
+    [HttpDelete("{id:int}/image")]
+    public async Task<IActionResult> RemoveImage(int id, CancellationToken ct)
+        => FromResult(await writes.RemoveProductImageAsync(id, CurrentUserId, ct),
+                      StatusCodes.Status204NoContent);
 
     /// <summary>Puts an archived product back in the shop.</summary>
     /// <remarks>

@@ -102,6 +102,10 @@ export interface AdminProduct {
   defaultSwatchId?: number | null;
   swatchColorValue?: string | null; swatchWeave?: string | null;
 
+  /** The product photograph, when the shop has taken one. */
+  imagePath?: string | null;
+  thumbnailPath?: string | null;
+
   /** Set when the product is archived. Null while it is in the shop. */
   deletedAt?: string | null;
   /** Who archived it, by name. */

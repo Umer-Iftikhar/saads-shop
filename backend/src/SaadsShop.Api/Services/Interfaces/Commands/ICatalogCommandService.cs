@@ -1,5 +1,6 @@
 using SaadsShop.Api.DTOs.Internal;
 using SaadsShop.Api.DTOs.Request;
+using SaadsShop.Api.DTOs.Response;
 
 namespace SaadsShop.Api.Services.Interfaces.Commands;
 
@@ -20,5 +21,14 @@ public interface ICatalogCommandService
         int productId, string? actorUserId, CancellationToken ct = default);
 
     Task<OperationResult<bool>> RestoreProductAsync(
+        int productId, string? actorUserId, CancellationToken ct = default);
+
+    /// <summary>Validates and stores an uploaded photograph against a product.</summary>
+    Task<OperationResult<ProductImageResponse>> SetProductImageAsync(
+        int productId, Stream content, string fileName, long length,
+        string? actorUserId, CancellationToken ct = default);
+
+    /// <summary>Removes a product's photograph, returning it to the drawn cloth.</summary>
+    Task<OperationResult<bool>> RemoveProductImageAsync(
         int productId, string? actorUserId, CancellationToken ct = default);
 }

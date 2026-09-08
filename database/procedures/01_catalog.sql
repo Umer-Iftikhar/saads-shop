@@ -121,6 +121,7 @@ BEGIN
         Price DECIMAL(12,2), Pieces NVARCHAR(48), Stock INT, StitchingDays INT,
         DefaultSwatchId INT, SwatchName NVARCHAR(48), SwatchColorValue NVARCHAR(64),
         SwatchWeave NVARCHAR(16), IsActive BIT,
+        ImagePath NVARCHAR(512), ThumbnailPath NVARCHAR(512),
         DeletedAt DATETIME2(3), DeletedBy NVARCHAR(128), SortIndex INT IDENTITY(1,1)
     );
 
@@ -155,7 +156,7 @@ BEGIN
                         p.Kicker, p.Blurb, p.Price, p.Pieces, p.Stock, p.StitchingDays,
                         p.DefaultSwatchId, s.Name AS SwatchName, s.ColorValue AS SwatchColorValue,
                         s.Weave AS SwatchWeave, p.IsActive, p.SoldCount, p.CreatedAt,
-                        p.DeletedAt, du.FullName AS DeletedBy
+                        p.ImagePath, p.ThumbnailPath, p.DeletedAt, du.FullName AS DeletedBy
                 FROM    dbo.Products AS p
                 JOIN    dbo.Categories AS c ON c.CategoryId = p.CategoryId
                 LEFT JOIN dbo.Swatches AS s ON s.SwatchId = p.DefaultSwatchId
@@ -171,11 +172,11 @@ BEGIN
             INSERT INTO #Page (ProductId, Name, Slug, CategoryId, CategoryName, Kicker, Blurb,
                                Price, Pieces, Stock, StitchingDays, DefaultSwatchId,
                                SwatchName, SwatchColorValue, SwatchWeave, IsActive,
-                               DeletedAt, DeletedBy)
+                               ImagePath, ThumbnailPath, DeletedAt, DeletedBy)
             SELECT  ProductId, Name, Slug, CategoryId, CategoryName, Kicker, Blurb,
                     Price, Pieces, Stock, StitchingDays, DefaultSwatchId,
                     SwatchName, SwatchColorValue, SwatchWeave, IsActive,
-                    DeletedAt, DeletedBy
+                    ImagePath, ThumbnailPath, DeletedAt, DeletedBy
             FROM    filtered
             ORDER BY
                 CASE WHEN @SortBy = N'PriceAsc'  THEN Price END ASC,
@@ -208,7 +209,8 @@ BEGIN
     /* --- single exit: fixed shape, always ------------------------------ */
     SELECT  ProductId, Name, Slug, CategoryId, CategoryName, Kicker, Blurb, Price,
             Pieces, Stock, StitchingDays, DefaultSwatchId, SwatchName,
-            SwatchColorValue, SwatchWeave, IsActive, DeletedAt, DeletedBy
+            SwatchColorValue, SwatchWeave, IsActive, ImagePath, ThumbnailPath,
+            DeletedAt, DeletedBy
     FROM    #Page
     ORDER BY SortIndex;
 
@@ -264,7 +266,8 @@ BEGIN
     /*  1 — the product (empty when not found)                              */
     SELECT  p.ProductId, p.Name, p.Slug, p.CategoryId, c.Name AS CategoryName, c.Slug AS CategorySlug,
             p.Kicker, p.Blurb, p.LongDescription, p.Price, p.Pieces, p.StitchingDays,
-            p.Stock, p.LowStockAt, p.DefaultSwatchId, p.SoldCount, p.IsActive
+            p.Stock, p.LowStockAt, p.DefaultSwatchId, p.SoldCount, p.IsActive,
+            p.ImagePath, p.ThumbnailPath
     FROM    dbo.Products AS p
     JOIN    dbo.Categories AS c ON c.CategoryId = p.CategoryId
     WHERE   p.ProductId = @FoundId;
@@ -586,6 +589,68 @@ BEGIN
         VALUES (ERROR_PROCEDURE(), ERROR_NUMBER(), ERROR_MESSAGE(), ERROR_LINE(), ERROR_SEVERITY());
         SELECT @ResponseCode = 500, @ResponseMessage = N'Could not bring the product back. Please try again.';
     END CATCH
+
+    SELECT @ResponseCode AS ResponseCode, @ResponseMessage AS ResponseMessage;
+END
+GO
+
+/*  Setting or clearing a product's photograph.
+    ------------------------------------------------------------------------
+    The files are written by the API before this runs, and the previous paths
+    come back so the caller can delete what they replace. Passing NULL for both
+    clears the photo and returns the product to the drawn cloth.
+
+    The paths are produced by the server, never by the uploader — see
+    ProductImageService, which names every file with a GUID.
+*/
+CREATE OR ALTER PROCEDURE dbo.usp_Product_SetImage
+    @ProductId     INT,
+    @ImagePath     NVARCHAR(512) = NULL,
+    @ThumbnailPath NVARCHAR(512) = NULL,
+    @ActorUserId   NVARCHAR(128) = NULL
+AS
+BEGIN
+    SET NOCOUNT ON;
+    SET XACT_ABORT ON;
+
+    DECLARE @ResponseCode INT = 200, @ResponseMessage NVARCHAR(400) = N'OK';
+    DECLARE @PreviousImage NVARCHAR(512) = NULL, @PreviousThumb NVARCHAR(512) = NULL;
+
+    BEGIN TRY
+        IF @ProductId IS NULL OR @ProductId <= 0
+            SELECT @ResponseCode = 400, @ResponseMessage = N'Product id is required.';
+        /*  One of the two, or neither. A photo without its thumbnail would have
+            the cards fall back to the gradient while the page showed a picture. */
+        ELSE IF (CASE WHEN @ImagePath     IS NULL THEN 1 ELSE 0 END)
+             <> (CASE WHEN @ThumbnailPath IS NULL THEN 1 ELSE 0 END)
+            SELECT @ResponseCode = 400, @ResponseMessage = N'A photo needs both its sizes.';
+        ELSE IF NOT EXISTS (SELECT 1 FROM dbo.Products WHERE ProductId = @ProductId)
+            SELECT @ResponseCode = 404, @ResponseMessage = N'That product no longer exists.';
+        ELSE
+        BEGIN
+            UPDATE dbo.Products
+            SET    @PreviousImage = ImagePath,
+                   @PreviousThumb = ThumbnailPath,
+                   ImagePath      = @ImagePath,
+                   ThumbnailPath  = @ThumbnailPath,
+                   UpdatedAt      = SYSUTCDATETIME()
+            WHERE  ProductId = @ProductId;
+
+            SET @ResponseMessage = CASE WHEN @ImagePath IS NULL
+                                        THEN N'Photo removed.'
+                                        ELSE N'Photo saved.' END;
+        END
+    END TRY
+    BEGIN CATCH
+        IF XACT_STATE() <> 0 ROLLBACK TRANSACTION;
+        SET @PreviousImage = NULL; SET @PreviousThumb = NULL;
+        INSERT INTO dbo.ErrorLog (ProcedureName, ErrorNumber, ErrorMessage, ErrorLine, ErrorSeverity)
+        VALUES (ERROR_PROCEDURE(), ERROR_NUMBER(), ERROR_MESSAGE(), ERROR_LINE(), ERROR_SEVERITY());
+        SELECT @ResponseCode = 500, @ResponseMessage = N'Could not save the photo. Please try again.';
+    END CATCH
+
+    /*  What was there before, so the caller can delete the files it replaced. */
+    SELECT @PreviousImage AS ImagePath, @PreviousThumb AS ThumbnailPath;
 
     SELECT @ResponseCode AS ResponseCode, @ResponseMessage AS ResponseMessage;
 END

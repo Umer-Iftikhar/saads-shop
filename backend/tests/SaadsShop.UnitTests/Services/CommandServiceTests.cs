@@ -6,16 +6,18 @@ using SaadsShop.Api.Models;
 using SaadsShop.Api.Repositories.Interfaces;
 using SaadsShop.Api.Repositories.Interfaces.Commands;
 using SaadsShop.Api.Services.Implementations.Commands;
+using SaadsShop.Api.Services.Interfaces;
 
 namespace SaadsShop.UnitTests.Services;
 
 public class CatalogCommandServiceTests
 {
     private readonly ICatalogCommandRepository _repository = Substitute.For<ICatalogCommandRepository>();
+    private readonly IProductImageService _images = Substitute.For<IProductImageService>();
     private readonly FakeCache _cache = new();
 
     private CatalogCommandService Service
-        => new(_repository, _cache, Given.Log<CatalogCommandService>());
+        => new(_repository, _images, _cache, Given.Log<CatalogCommandService>());
 
     private static ProductEditorRequest AProduct() => new()
     {

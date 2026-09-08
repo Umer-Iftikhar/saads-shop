@@ -26,14 +26,26 @@ export function ProductCard({ product, size = 'listing' }: {
       className={`card gap-0 overflow-hidden p-0 text-text shadow-sm hover:no-underline
                   ${compact ? 'bg-neutral-200' : 'bg-surface'}`}
     >
-      <div
-        className={`washed ${swatchHeight}`}
-        style={{ background: fabricBackground(product.swatchColorValue, product.swatchWeave) }}
-        // Decorative: the cloth is described by the product name and the swatch
-        // picker on the detail page. Announcing "woven terracotta" here would
-        // just add noise before every card title.
-        aria-hidden="true"
-      />
+      {/*  A photograph once the shop has taken one, and the drawn cloth until
+          then. Both are decorative: the product name below says what this is,
+          and "woven terracotta" before every card title is noise.          */}
+      {product.thumbnailPath ? (
+        <img
+          src={product.thumbnailPath}
+          alt=""
+          aria-hidden="true"
+          // Eager would have every card on the listing page fetch at once.
+          loading="lazy"
+          decoding="async"
+          className={`w-full object-cover ${swatchHeight}`}
+        />
+      ) : (
+        <div
+          className={`washed ${swatchHeight}`}
+          style={{ background: fabricBackground(product.swatchColorValue, product.swatchWeave) }}
+          aria-hidden="true"
+        />
+      )}
 
       <div className={compact ? 'px-[17px] pb-[17px] pt-[15px]' : 'px-[22px] pb-[22px] pt-5'}>
         {product.kicker && !compact && <div className="card-kicker">{product.kicker}</div>}

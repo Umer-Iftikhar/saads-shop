@@ -194,6 +194,43 @@ export function useRestoreProduct() {
   });
 }
 
+/**
+ * Uploading and removing a product photograph.
+ *
+ * The file goes as multipart, so the body is FormData rather than JSON and the
+ * browser sets the boundary. Both invalidate the storefront's cache: a card
+ * that goes on drawing the cloth after a photo was added is the same bug as one
+ * showing a photo the shop removed.
+ */
+export function useUploadProductImage(productId: number) {
+  const client = useQueryClient();
+
+  return useMutation({
+    mutationFn: (file: File) => {
+      const form = new FormData();
+      form.append('file', file);
+      return api.post<{ imagePath: string; thumbnailPath: string }>(
+        `/admin/products/${productId}/image`, form);
+    },
+    onSuccess: () => {
+      void client.invalidateQueries({ queryKey: ['admin'] });
+      void client.invalidateQueries({ queryKey: ['catalog'] });
+    },
+  });
+}
+
+export function useRemoveProductImage(productId: number) {
+  const client = useQueryClient();
+
+  return useMutation({
+    mutationFn: () => api.del<void>(`/admin/products/${productId}/image`),
+    onSuccess: () => {
+      void client.invalidateQueries({ queryKey: ['admin'] });
+      void client.invalidateQueries({ queryKey: ['catalog'] });
+    },
+  });
+}
+
 export function useSettings() {
   return useQuery({
     queryKey: ['admin', 'settings'],
