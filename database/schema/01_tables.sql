@@ -206,19 +206,82 @@ BEGIN
         DefaultSwatchId INT            NULL,
         SoldCount       INT            NOT NULL CONSTRAINT DF_Products_SoldCount DEFAULT (0),
         IsActive        BIT            NOT NULL CONSTRAINT DF_Products_IsActive DEFAULT (1),
+        /*  Archived, not deleted. IsActive alone says a product is not on the
+            storefront; these say it was removed, when, and by whom — which is
+            what the panel needs to offer it back. A product hidden by an edit
+            and one removed by the owner are different states.                */
+        DeletedAt       DATETIME2(3)   NULL,
+        DeletedByUserId NVARCHAR(128)  NULL,
         CreatedAt       DATETIME2(3)   NOT NULL CONSTRAINT DF_Products_CreatedAt DEFAULT (SYSUTCDATETIME()),
         UpdatedAt       DATETIME2(3)   NULL,
         RowVersion      ROWVERSION     NOT NULL,
         CONSTRAINT FK_Products_Categories FOREIGN KEY (CategoryId) REFERENCES dbo.Categories (CategoryId),
         CONSTRAINT FK_Products_Swatches   FOREIGN KEY (DefaultSwatchId) REFERENCES dbo.Swatches (SwatchId),
+        CONSTRAINT FK_Products_DeletedBy  FOREIGN KEY (DeletedByUserId)  REFERENCES dbo.Users (Id),
+        -- An archived product has both columns set, or neither. Half-set is a bug.
+        CONSTRAINT CK_Products_Deleted CHECK (
+            (DeletedAt IS NULL AND DeletedByUserId IS NULL) OR DeletedAt IS NOT NULL),
         -- Stock can never go below zero even if a procedure is bypassed entirely.
         CONSTRAINT CK_Products_Stock         CHECK (Stock >= 0),
         CONSTRAINT CK_Products_Price         CHECK (Price >= 0 AND Price <= 10000000),
         CONSTRAINT CK_Products_StitchingDays CHECK (StitchingDays BETWEEN 0 AND 90)
     );
-    CREATE UNIQUE INDEX UX_Products_Slug ON dbo.Products (Slug);
-    CREATE UNIQUE INDEX UX_Products_Name ON dbo.Products (Name);
 END
+GO
+
+/*  The archive columns, for databases created before they existed.
+    ------------------------------------------------------------------------
+    One statement per batch, deliberately. SQL Server compiles an entire batch
+    before executing any of it, so adding a column and then referencing it —
+    in a constraint, or in a filtered index — inside the same batch fails to
+    compile on exactly the databases that need the change. Every step below is
+    separated by GO and guarded by its own existence check, which is what makes
+    this file safe to run against a fresh database and an old one alike.     */
+IF COL_LENGTH(N'dbo.Products', N'DeletedAt') IS NULL
+    ALTER TABLE dbo.Products ADD DeletedAt DATETIME2(3) NULL;
+GO
+
+IF COL_LENGTH(N'dbo.Products', N'DeletedByUserId') IS NULL
+    ALTER TABLE dbo.Products ADD DeletedByUserId NVARCHAR(128) NULL;
+GO
+
+IF OBJECT_ID(N'dbo.FK_Products_DeletedBy', N'F') IS NULL
+    ALTER TABLE dbo.Products ADD CONSTRAINT FK_Products_DeletedBy
+        FOREIGN KEY (DeletedByUserId) REFERENCES dbo.Users (Id);
+GO
+
+IF OBJECT_ID(N'dbo.CK_Products_Deleted', N'C') IS NULL
+    ALTER TABLE dbo.Products ADD CONSTRAINT CK_Products_Deleted CHECK (
+        (DeletedAt IS NULL AND DeletedByUserId IS NULL) OR DeletedAt IS NOT NULL);
+GO
+
+/*  Products archived before the columns existed are indistinguishable from
+    ones simply switched off in the editor, so they are left alone: a NULL
+    DeletedAt reads as "not archived", and the owner can archive it again if
+    that is what they meant.                                                  */
+
+/*  Name and slug are unique among the products the shop actually has, not
+    among every row ever created. Archiving has to free the name: otherwise an
+    archived product holds it forever, and the owner making a replacement
+    "Gulaab Bridal Set" is refused by a product they cannot see.
+
+    In their own batch, and after the ALTERs above, on purpose. SQL Server
+    compiles a whole batch before running any of it, so a filtered index naming
+    DeletedAt inside the CREATE TABLE block fails to compile against a database
+    where the column does not exist yet — even though the guard around it is
+    false. Splitting on GO is what makes this file re-runnable on both a fresh
+    database and an old one.
+
+    Filtered indexes also need QUOTED_IDENTIFIER ON, which is why apply.sh
+    passes -I. See docs/database.md.                                          */
+IF NOT EXISTS (SELECT 1 FROM sys.indexes
+               WHERE name = N'UX_Products_Slug' AND object_id = OBJECT_ID(N'dbo.Products'))
+    CREATE UNIQUE INDEX UX_Products_Slug ON dbo.Products (Slug) WHERE DeletedAt IS NULL;
+GO
+
+IF NOT EXISTS (SELECT 1 FROM sys.indexes
+               WHERE name = N'UX_Products_Name' AND object_id = OBJECT_ID(N'dbo.Products'))
+    CREATE UNIQUE INDEX UX_Products_Name ON dbo.Products (Name) WHERE DeletedAt IS NULL;
 GO
 
 IF OBJECT_ID(N'dbo.ProductSwatches', N'U') IS NULL

@@ -12,6 +12,13 @@ public interface ICatalogCommandService
     Task<OperationResult<bool>> UpdateProductAsync(
         int productId, ProductEditorRequest request, string? actorUserId, CancellationToken ct = default);
 
+    /// <summary>
+    /// Archives a product rather than deleting it, and can be undone with
+    /// <see cref="RestoreProductAsync"/>.
+    /// </summary>
     Task<OperationResult<bool>> DeleteProductAsync(
+        int productId, string? actorUserId, CancellationToken ct = default);
+
+    Task<OperationResult<bool>> RestoreProductAsync(
         int productId, string? actorUserId, CancellationToken ct = default);
 }

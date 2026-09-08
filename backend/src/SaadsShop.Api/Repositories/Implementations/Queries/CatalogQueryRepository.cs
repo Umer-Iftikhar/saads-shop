@@ -42,6 +42,9 @@ public sealed class CatalogQueryRepository(ISqlConnectionFactory connectionFacto
                 CategorySlug    = string.IsNullOrWhiteSpace(query.Category) ? null : query.Category,
                 Search          = string.IsNullOrWhiteSpace(query.Search) ? null : query.Search,
                 IncludeInactive = includeInactive,
+                //  NULL rather than false for the ordinary case: the procedure
+                //  reads NULL as "live products only" and 1 as "the archive".
+                ArchivedOnly    = query.ArchivedOnly ? true : (bool?)null,
                 SortBy          = query.SortBy,
                 Page            = query.Page,
                 PageSize        = query.PageSize

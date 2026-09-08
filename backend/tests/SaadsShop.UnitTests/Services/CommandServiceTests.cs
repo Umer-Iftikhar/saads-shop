@@ -93,6 +93,53 @@ public class CatalogCommandServiceTests
     }
 
     [Fact]
+    public async Task Restoring_a_product_invalidates_the_catalogue()
+    {
+        //  The storefront cached the catalogue without this product in it, so a
+        //  restore that skipped the bump would put it back everywhere except
+        //  where customers look.
+        _repository.RestoreProductAsync(1, "saad", Arg.Any<CancellationToken>()).Returns(Given.Ok(true));
+
+        Assert.True((await Service.RestoreProductAsync(1, "saad")).IsSuccess);
+        Assert.Equal(1, _cache.BumpCount(CacheKeys.CatalogVersion));
+    }
+
+    [Fact]
+    public async Task A_refused_restore_leaves_the_cache_alone()
+    {
+        _repository.RestoreProductAsync(1, Arg.Any<string?>(), Arg.Any<CancellationToken>())
+                   .Returns(Given.Failed<bool>(409, "Another product is using that name now."));
+
+        var result = await Service.RestoreProductAsync(1, "saad");
+
+        Assert.False(result.IsSuccess);
+        Assert.Equal(409, result.ResponseCode);
+        Assert.Equal(0, _cache.BumpCount(CacheKeys.CatalogVersion));
+    }
+
+    [Fact]
+    public async Task A_refused_restore_passes_the_reason_through_for_the_shopkeeper()
+    {
+        _repository.RestoreProductAsync(1, Arg.Any<string?>(), Arg.Any<CancellationToken>())
+                   .Returns(Given.Failed<bool>(409, "That product's category is no longer in the shop."));
+
+        var result = await Service.RestoreProductAsync(1, "saad");
+
+        Assert.Equal("That product's category is no longer in the shop.", result.Message);
+    }
+
+    [Fact]
+    public async Task Restoring_records_who_did_it()
+    {
+        _repository.RestoreProductAsync(Arg.Any<int>(), Arg.Any<string?>(), Arg.Any<CancellationToken>())
+                   .Returns(Given.Ok(true));
+
+        await Service.RestoreProductAsync(7, "user-99");
+
+        await _repository.Received(1).RestoreProductAsync(7, "user-99", Arg.Any<CancellationToken>());
+    }
+
+    [Fact]
     public async Task The_acting_user_reaches_the_procedure_so_the_audit_row_has_a_name_on_it()
     {
         _repository.CreateProductAsync(Arg.Any<ProductEditorRequest>(), Arg.Any<string?>(), Arg.Any<CancellationToken>())

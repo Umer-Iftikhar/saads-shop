@@ -147,7 +147,9 @@ public sealed class CatalogQueryService(
                 IsActive         = p.IsActive,
                 DefaultSwatchId  = p.DefaultSwatchId,
                 SwatchColorValue = p.SwatchColorValue,
-                SwatchWeave      = p.SwatchWeave
+                SwatchWeave      = p.SwatchWeave,
+                DeletedAt        = p.DeletedAt,
+                DeletedBy        = p.DeletedBy
             }).ToList(),
             TotalCount = result.Data.Page.TotalCount,
             Page       = result.Data.Page.Page,

@@ -49,7 +49,22 @@ public sealed class CatalogCommandService(
             return OperationResult<bool>.Failure(result.ResponseCode, result.ResponseMessage);
 
         InvalidateCatalog();
-        logger.LogInformation("Product {ProductId} removed by {ActorUserId}", productId, actorUserId);
+        logger.LogInformation("Product {ProductId} archived by {ActorUserId}", productId, actorUserId);
+
+        return OperationResult<bool>.Success(true, result.ResponseMessage);
+    }
+
+    public async Task<OperationResult<bool>> RestoreProductAsync(
+        int productId, string? actorUserId, CancellationToken ct = default)
+    {
+        var result = await repository.RestoreProductAsync(productId, actorUserId, ct);
+
+        if (!result.IsSuccess)
+            return OperationResult<bool>.Failure(result.ResponseCode, result.ResponseMessage);
+
+        // The storefront cached the catalogue without this product in it.
+        InvalidateCatalog();
+        logger.LogInformation("Product {ProductId} restored by {ActorUserId}", productId, actorUserId);
 
         return OperationResult<bool>.Success(true, result.ResponseMessage);
     }

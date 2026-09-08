@@ -101,6 +101,11 @@ export interface AdminProduct {
   soldCount: number; isActive: boolean;
   defaultSwatchId?: number | null;
   swatchColorValue?: string | null; swatchWeave?: string | null;
+
+  /** Set when the product is archived. Null while it is in the shop. */
+  deletedAt?: string | null;
+  /** Who archived it, by name. */
+  deletedBy?: string | null;
 }
 
 export interface ShopSettings {
