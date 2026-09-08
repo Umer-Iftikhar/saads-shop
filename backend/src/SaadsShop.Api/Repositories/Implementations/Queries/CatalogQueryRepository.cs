@@ -5,11 +5,12 @@ using SaadsShop.Api.DTOs.Internal;
 using SaadsShop.Api.DTOs.Request;
 using SaadsShop.Api.Models;
 using SaadsShop.Api.Repositories.Interfaces;
+using SaadsShop.Api.Repositories.Interfaces.Queries;
 
-namespace SaadsShop.Api.Repositories.Implementations;
+namespace SaadsShop.Api.Repositories.Implementations.Queries;
 
-public sealed class CatalogRepository(ISqlConnectionFactory connectionFactory)
-    : RepositoryBase(connectionFactory), ICatalogRepository
+public sealed class CatalogQueryRepository(ISqlConnectionFactory connectionFactory)
+    : RepositoryBase(connectionFactory), ICatalogQueryRepository
 {
     public Task<ProcedureResult<IReadOnlyList<Category>>> GetCategoriesAsync(CancellationToken ct = default)
         => ExecuteAsync<IReadOnlyList<Category>>(
@@ -68,77 +69,4 @@ public sealed class CatalogRepository(ISqlConnectionFactory connectionFactory)
                 Related  = (await grid.ReadAsync<Product>()).AsList()
             },
             ct);
-
-    public Task<ProcedureResult<int?>> CreateProductAsync(
-        ProductEditorRequest request, string? actorUserId, CancellationToken ct = default)
-    {
-        var swatches = BuildIntListTable(request.SwatchIds);
-
-        return ExecuteAsync<int?>(
-            StoredProcedures.ProductCreate,
-            WithTableParameter(
-                new
-                {
-                    request.Name,
-                    request.CategoryId,
-                    request.Price,
-                    request.Kicker,
-                    request.Blurb,
-                    request.LongDescription,
-                    request.Pieces,
-                    request.StitchingDays,
-                    request.Stock,
-                    request.LowStockAt,
-                    request.DefaultSwatchId,
-                    ActorUserId = actorUserId
-                },
-                "SwatchIds", swatches, TableTypes.IntList),
-            async grid =>
-            {
-                var created = await grid.ReadSingleOrDefaultAsync<CreatedProduct>();
-                return created?.ProductId;
-            },
-            ct);
-    }
-
-    public Task<ProcedureResult<bool>> UpdateProductAsync(
-        int productId, ProductEditorRequest request, string? actorUserId, CancellationToken ct = default)
-    {
-        var swatches = BuildIntListTable(request.SwatchIds);
-
-        return ExecuteAsync(
-            StoredProcedures.ProductUpdate,
-            WithTableParameter(
-                new
-                {
-                    ProductId = productId,
-                    request.Name,
-                    request.CategoryId,
-                    request.Price,
-                    request.Kicker,
-                    request.Blurb,
-                    request.LongDescription,
-                    request.Pieces,
-                    request.StitchingDays,
-                    request.LowStockAt,
-                    request.DefaultSwatchId,
-                    request.IsActive,
-                    ActorUserId = actorUserId
-                },
-                "SwatchIds", swatches, TableTypes.IntList),
-            ct);
-    }
-
-    public Task<ProcedureResult<bool>> DeleteProductAsync(
-        int productId, string? actorUserId, CancellationToken ct = default)
-        => ExecuteAsync(
-            StoredProcedures.ProductDelete,
-            new { ProductId = productId, ActorUserId = actorUserId },
-            ct);
-
-    private sealed class CreatedProduct
-    {
-        public int?    ProductId { get; set; }
-        public string? Slug      { get; set; }
-    }
 }

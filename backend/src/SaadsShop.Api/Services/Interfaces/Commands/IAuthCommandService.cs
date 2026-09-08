@@ -2,7 +2,7 @@ using SaadsShop.Api.DTOs.Internal;
 using SaadsShop.Api.DTOs.Request;
 using SaadsShop.Api.DTOs.Response;
 
-namespace SaadsShop.Api.Services.Interfaces;
+namespace SaadsShop.Api.Services.Interfaces.Commands;
 
 /// <summary>
 /// Sign-in, two-factor, session rotation and staff accounts.
@@ -12,7 +12,7 @@ namespace SaadsShop.Api.Services.Interfaces;
 /// response body: the controller writes it to an HttpOnly cookie and it never
 /// reaches JavaScript. See docs/security.md.
 /// </remarks>
-public interface IAuthService
+public interface IAuthCommandService
 {
     Task<OperationResult<LoginChallengeResponse>> LoginAsync(LoginRequest request, string? ip, CancellationToken ct = default);
 
@@ -31,11 +31,9 @@ public interface IAuthService
         string provider, string providerKey, string email, bool emailVerified, string? displayName,
         string? ip, CancellationToken ct = default);
 
-    Task<OperationResult<CurrentUserResponse>>    GetCurrentUserAsync(string userId, CancellationToken ct = default);
     Task<OperationResult<TwoFactorSetupResponse>> BeginTwoFactorEnrolmentAsync(string userId, CancellationToken ct = default);
     Task<OperationResult<RecoveryCodesResponse>>  ConfirmTwoFactorEnrolmentAsync(string userId, ConfirmTwoFactorRequest request, CancellationToken ct = default);
 
-    Task<OperationResult<IReadOnlyList<StaffAccountResponse>>> GetStaffAsync(CancellationToken ct = default);
     Task<OperationResult<string>> CreateStaffAsync(CreateStaffRequest request, CancellationToken ct = default);
     Task<OperationResult<bool>>   SetRoleAsync(SetRoleRequest request, CancellationToken ct = default);
 }

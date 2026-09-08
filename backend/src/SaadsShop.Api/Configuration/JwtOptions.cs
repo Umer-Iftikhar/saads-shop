@@ -37,6 +37,22 @@ public sealed class JwtOptions
     public int TwoFactorChallengeMinutes { get; init; } = 5;
 
     /// <summary>
+    /// How long one rotation's answer is replayed to callers presenting the same
+    /// refresh token, instead of rotating again.
+    /// </summary>
+    /// <remarks>
+    /// Refresh tokens rotate and a spent one is treated as theft, so two tabs
+    /// refreshing at once — or one request retried after its response was lost —
+    /// would revoke the whole family and sign the shop out. Within this window
+    /// the second caller is handed the same tokens the first was.
+    ///
+    /// Seconds, not minutes: it covers a round trip, not a session. Set to 0 to
+    /// switch it off and rely on the database alone.
+    /// </remarks>
+    [Range(0, 60)]
+    public int RefreshRotationGraceSeconds { get; init; } = 20;
+
+    /// <summary>
     /// Placeholders that must never reach production. Startup fails on any of
     /// them, because a key copied from a sample is the same as no key at all.
     /// </summary>
