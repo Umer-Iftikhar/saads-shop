@@ -50,6 +50,46 @@ and both parties are logged out. Theft becomes a detectable event instead of a s
 indefinite session. Rotation happens inside a transaction so two concurrent refreshes
 cannot both succeed.
 
+#### The 20-second rotation window
+
+That rule is right for a token replayed an hour later and wrong for two things that happen
+constantly:
+
+- **Two tabs refresh at the same moment.** One wins; the other arrives with a token the
+  first has just spent.
+- **A response is lost.** The server rotated, the reply never arrived, and the client
+  retries with the only token it still holds.
+
+Neither is theft, and under the bare rule both sign the shop out. So one rotation answers
+everyone presenting that token for the next **20 seconds** (`Jwt:RefreshRotationGraceSeconds`,
+0 to disable). Concurrent callers share the single in-flight rotation rather than starting
+two; a caller arriving shortly after is handed the same tokens the first one got.
+
+The database is untouched by this — it keeps its strict one-use rule, and the window lives
+in `AuthCommandService`, keyed by the *hash* of the presented token.
+
+What it costs: an attacker replaying a stolen token inside those 20 seconds receives the
+same tokens the victim just did, rather than tripping the alarm. Detection is delayed, not
+lost — the moment either party rotates again, the other's copy is a spent token and the
+family burns. Twenty seconds is chosen to cover a round trip on a slow connection and
+nothing more.
+
+It is process memory, so two API instances behind a load balancer each keep their own and a
+race split across both still falls through to the database — safe, just a re-login. Making
+it multi-instance means a shared cache; the static field in `AuthCommandService` is the seam.
+
+Measured against the running API, eight refreshes fired at once on one token:
+
+| | grace off | grace on (20s) |
+| --- | --- | --- |
+| Statuses | `401` × 7, `200` × 1 | `200` × 8 |
+| Rotations | 2 | **1** |
+| Family afterwards | revoked — everyone signed out | alive |
+| Genuine replay after the window | 401 + family revoked | 401 + family revoked |
+
+The last row is the one that matters: the window does not weaken reuse detection, it only
+stops it firing on the shop's own traffic.
+
 Refresh tokens are delivered as **`HttpOnly`, `Secure`, `SameSite=Strict`** cookies rather
 than JSON, which puts them out of reach of XSS. The access token lives in memory in the SPA
 — never `localStorage`.

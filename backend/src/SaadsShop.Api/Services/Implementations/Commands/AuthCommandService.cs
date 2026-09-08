@@ -1,3 +1,4 @@
+using System.Collections.Concurrent;
 using Microsoft.AspNetCore.DataProtection;
 using Microsoft.AspNetCore.Identity;
 using Microsoft.Extensions.Options;
@@ -179,10 +180,119 @@ public sealed class AuthCommandService(
 
     // ── rotation ─────────────────────────────────────────────────────────────
 
-    public async Task<OperationResult<SessionIssued>> RefreshAsync(
+    /// <summary>
+    /// Rotations answered in the last <see cref="JwtOptions.RefreshRotationGraceSeconds"/>,
+    /// keyed by the hash of the token that was presented.
+    /// </summary>
+    /// <remarks>
+    /// The database treats a spent refresh token as theft and revokes the whole
+    /// family. That is right for a stolen token replayed an hour later, and
+    /// wrong for the two things that happen constantly: two tabs refreshing at
+    /// the same moment, and a request retried because its response was lost.
+    /// Both arrive with a token that has just been spent, and both would sign
+    /// the shop out.
+    ///
+    /// So one rotation answers everyone who presents that token for the next
+    /// twenty seconds. The entry holds the attempt itself, not its result, so
+    /// concurrent callers share a single rotation rather than starting two —
+    /// the second awaits the first's.
+    ///
+    /// Static because the service is scoped: a per-request instance would
+    /// remember nothing. It is process memory, so a second API instance behind
+    /// a load balancer has its own copy and a race split across the two still
+    /// falls through to the database — safe, just a re-login. Making that
+    /// multi-instance means a shared cache, and this field is the seam.
+    /// </remarks>
+    private static readonly ConcurrentDictionary<string, RecentRotation> RecentRotations = new(StringComparer.Ordinal);
+
+    /// <summary>
+    /// A rotation in flight or lately finished. The attempt is a
+    /// <see cref="Lazy{T}"/> in <see cref="LazyThreadSafetyMode.ExecutionAndPublication"/>
+    /// so that however many callers reach this entry, exactly one of them ever
+    /// runs the rotation; the rest await the same task.
+    /// </summary>
+    private sealed record RecentRotation(
+        Lazy<Task<OperationResult<SessionIssued>>> Attempt,
+        DateTime ExpiresAt);
+
+    public Task<OperationResult<SessionIssued>> RefreshAsync(
         string refreshToken, string? ip, CancellationToken ct = default)
     {
         var presented = tokens.HashRefreshToken(refreshToken);
+
+        if (_jwt.RefreshRotationGraceSeconds <= 0)
+            return RotateAsync(presented, ip, ct);
+
+        // The hash, never the token: this dictionary is keyed by something that
+        // is useless to anyone who reads it.
+        var key = Convert.ToHexString(presented);
+        var now = DateTime.UtcNow;
+
+        PruneRotations(now);
+
+        while (true)
+        {
+            if (RecentRotations.TryGetValue(key, out var existing))
+            {
+                if (existing.ExpiresAt > now)
+                {
+                    logger.LogDebug("Refresh presented inside the rotation window; replaying the first answer");
+                    return existing.Attempt.Value;
+                }
+
+                // The window has closed. Drop it — unless somebody has already
+                // replaced this exact entry, in which case theirs stands.
+                RecentRotations.TryRemove(new KeyValuePair<string, RecentRotation>(key, existing));
+            }
+
+            var entry = new RecentRotation(
+                new Lazy<Task<OperationResult<SessionIssued>>>(
+                    //  CancellationToken.None on purpose. This attempt is shared,
+                    //  so honouring the first caller's token would let one client
+                    //  giving up cancel the rotation everybody else is waiting on
+                    //  — and a rotation abandoned midway is exactly the lost
+                    //  response this window exists to absorb. The command timeout
+                    //  still bounds it.
+                    () => RotateAsync(presented, ip, CancellationToken.None),
+                    LazyThreadSafetyMode.ExecutionAndPublication),
+                now.AddSeconds(_jwt.RefreshRotationGraceSeconds));
+
+            // Lost the add: somebody else's entry is in place, so use theirs.
+            if (!RecentRotations.TryAdd(key, entry)) continue;
+
+            var attempt = entry.Attempt.Value;
+
+            //  A failure is not worth replaying for twenty seconds. It may have
+            //  been transient, and a genuine replay must reach the database's
+            //  reuse detection rather than be answered from in here.
+            _ = attempt.ContinueWith(
+                finished =>
+                {
+                    if (finished.IsCompletedSuccessfully && finished.Result.IsSuccess) return;
+                    RecentRotations.TryRemove(new KeyValuePair<string, RecentRotation>(key, entry));
+                },
+                CancellationToken.None,
+                TaskContinuationOptions.ExecuteSynchronously,
+                TaskScheduler.Default);
+
+            return attempt;
+        }
+    }
+
+    /// <summary>Drops entries whose window has closed. Cheap, and there are only ever a handful.</summary>
+    private static void PruneRotations(DateTime now)
+    {
+        foreach (var (key, entry) in RecentRotations)
+        {
+            if (entry.ExpiresAt <= now)
+                RecentRotations.TryRemove(new KeyValuePair<string, RecentRotation>(key, entry));
+        }
+    }
+
+    /// <summary>The rotation itself — one call, one row locked, one replacement.</summary>
+    private async Task<OperationResult<SessionIssued>> RotateAsync(
+        byte[] presented, string? ip, CancellationToken ct)
+    {
         var (newToken, newHash) = tokens.CreateRefreshToken();
         var expiresAt = DateTime.UtcNow.AddDays(_jwt.RefreshTokenDays);
 
