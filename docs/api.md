@@ -80,9 +80,10 @@ ignored. `201 Created` returns the reference, the priced lines and the total.
 | `POST` | `/admin/orders/{id}/measurements` | Records who took them and when. |
 | `GET` | `/admin/inventory` | Stock levels with low-stock flags. |
 | `POST` | `/admin/inventory/{productId}/adjust` | Signed delta + reason; every adjustment is audited. |
-| `GET`&nbsp;/&nbsp;`POST` | `/admin/products` | List / create. |
-| `PUT`&nbsp;/&nbsp;`DELETE` | `/admin/products/{id}` | Update / soft-delete. Delete is `OwnerOnly` and returns `409` if order lines reference it. |
-| `POST`&nbsp;/&nbsp;`DELETE` | `/admin/products/{id}/swatches` | Attach / detach cloth. |
+| `GET`&nbsp;/&nbsp;`POST` | `/admin/products` | List / create. `?archivedOnly=true` lists the archive instead of the shop. |
+| `PUT`&nbsp;/&nbsp;`DELETE` | `/admin/products/{id}` | Update / archive. `DELETE` is `OwnerOnly` and never removes the row — it archives, and answers `200` with a message saying so. `409` if it is archived already. |
+| `POST` | `/admin/products/{id}/restore` | Bring an archived product back. `OwnerOnly`. `409` if another product has taken its name, or its category has been switched off. |
+| `POST`&nbsp;/&nbsp;`DELETE` | `/admin/products/{id}/image` | Upload / remove the product photo. Multipart, field name `file`. `400` for anything that is not a JPG, PNG or WEBP *by its bytes*, is over 10 MB, or declares more than 50 megapixels. |
 | `GET` | `/admin/stitching-queue` | Jobs grouped Measuring / Cutting / Stitching / Ready. |
 | `PATCH` | `/admin/stitching-queue/{jobId}` | Move stage, assign tailor, set due date. |
 | `GET` | `/admin/customers` | Repeat buyers, areas, lifetime spend. |

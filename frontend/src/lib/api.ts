@@ -80,8 +80,13 @@ export function getAccessToken(): string | null {
 async function request<T>(path: string, options: RequestOptions = {}): Promise<T> {
   const { method = 'GET', body, signal, withCredentials = false, bearer } = options;
 
+  //  FormData goes through as it is. Setting Content-Type on a multipart body
+  //  would omit the boundary the browser generates, and the server would have
+  //  no way to find where each part starts.
+  const isMultipart = body instanceof FormData;
+
   const headers: Record<string, string> = { Accept: 'application/json' };
-  if (body !== undefined) headers['Content-Type'] = 'application/json';
+  if (body !== undefined && !isMultipart) headers['Content-Type'] = 'application/json';
 
   const token = bearer ?? accessToken;
   if (token) headers.Authorization = `Bearer ${token}`;
@@ -92,7 +97,7 @@ async function request<T>(path: string, options: RequestOptions = {}): Promise<T
     response = await fetch(`${BASE_URL}${path}`, {
       method,
       headers,
-      body: body === undefined ? undefined : JSON.stringify(body),
+      body: body === undefined ? undefined : isMultipart ? (body as FormData) : JSON.stringify(body),
       signal,
       credentials: withCredentials ? 'include' : 'same-origin',
     });

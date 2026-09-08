@@ -186,3 +186,37 @@ A global exception middleware turns anything unhandled into RFC 7807
 `application/problem+json` with a correlation id — and no stack traces or SQL text in the
 response body. Expected failures (validation, not-found, conflict) never reach it; services
 return them as typed results the controller maps to the right status code.
+
+
+## Product photographs live on disk
+
+Uploads are written to the folder named by `Images:RootPath` and served back as
+static files under `Images:RequestPath` (`/media` by default). For one shop on
+one machine this is the right answer: nothing extra to run, no bill, and a
+backup of the folder is a backup of the photographs.
+
+**That folder must be a mounted volume.** A container's own filesystem is
+discarded on redeploy, and with it every photo the shop has taken. The database
+rows would survive and point at files that no longer exist, so the storefront
+would show broken images rather than falling back to the drawn cloth.
+
+```yaml
+# docker-compose, or the equivalent -v flag
+volumes:
+  - ./data/uploads:/app/uploads
+```
+
+What arrives is not trusted. `ProductImageService` checks the extension against
+a closed list, then the file's own leading bytes against the same list — an
+extension is a claim, and so is `Content-Type`; only the bytes are evidence —
+then the size, then the dimensions read from the header before any pixels are
+decoded, because a 40,000-square PNG is a few kilobytes on disk and gigabytes in
+memory. What survives is re-encoded to WebP at two sizes with all metadata
+stripped, and written under a GUID. Nothing the uploader supplied — filename or
+bytes — is ever served back verbatim.
+
+ImageSharp is pinned to the 2.x line. The licence changed at 3.0 to the Six
+Labors Split License; 1.x and 2.x are Apache-2.0, and 2.1.11 is the newest
+Apache-2.0 release that is still receiving fixes. 1.0.4 carries six published
+advisories, three of them high, in the decoder that parses exactly this
+untrusted input. Check the licence before moving past 2.x.

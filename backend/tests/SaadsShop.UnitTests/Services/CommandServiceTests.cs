@@ -6,16 +6,18 @@ using SaadsShop.Api.Models;
 using SaadsShop.Api.Repositories.Interfaces;
 using SaadsShop.Api.Repositories.Interfaces.Commands;
 using SaadsShop.Api.Services.Implementations.Commands;
+using SaadsShop.Api.Services.Interfaces;
 
 namespace SaadsShop.UnitTests.Services;
 
 public class CatalogCommandServiceTests
 {
     private readonly ICatalogCommandRepository _repository = Substitute.For<ICatalogCommandRepository>();
+    private readonly IProductImageService _images = Substitute.For<IProductImageService>();
     private readonly FakeCache _cache = new();
 
     private CatalogCommandService Service
-        => new(_repository, _cache, Given.Log<CatalogCommandService>());
+        => new(_repository, _images, _cache, Given.Log<CatalogCommandService>());
 
     private static ProductEditorRequest AProduct() => new()
     {
@@ -90,6 +92,53 @@ public class CatalogCommandServiceTests
 
         Assert.False((await Service.DeleteProductAsync(1, "saad")).IsSuccess);
         Assert.Equal(0, _cache.BumpCount(CacheKeys.CatalogVersion));
+    }
+
+    [Fact]
+    public async Task Restoring_a_product_invalidates_the_catalogue()
+    {
+        //  The storefront cached the catalogue without this product in it, so a
+        //  restore that skipped the bump would put it back everywhere except
+        //  where customers look.
+        _repository.RestoreProductAsync(1, "saad", Arg.Any<CancellationToken>()).Returns(Given.Ok(true));
+
+        Assert.True((await Service.RestoreProductAsync(1, "saad")).IsSuccess);
+        Assert.Equal(1, _cache.BumpCount(CacheKeys.CatalogVersion));
+    }
+
+    [Fact]
+    public async Task A_refused_restore_leaves_the_cache_alone()
+    {
+        _repository.RestoreProductAsync(1, Arg.Any<string?>(), Arg.Any<CancellationToken>())
+                   .Returns(Given.Failed<bool>(409, "Another product is using that name now."));
+
+        var result = await Service.RestoreProductAsync(1, "saad");
+
+        Assert.False(result.IsSuccess);
+        Assert.Equal(409, result.ResponseCode);
+        Assert.Equal(0, _cache.BumpCount(CacheKeys.CatalogVersion));
+    }
+
+    [Fact]
+    public async Task A_refused_restore_passes_the_reason_through_for_the_shopkeeper()
+    {
+        _repository.RestoreProductAsync(1, Arg.Any<string?>(), Arg.Any<CancellationToken>())
+                   .Returns(Given.Failed<bool>(409, "That product's category is no longer in the shop."));
+
+        var result = await Service.RestoreProductAsync(1, "saad");
+
+        Assert.Equal("That product's category is no longer in the shop.", result.Message);
+    }
+
+    [Fact]
+    public async Task Restoring_records_who_did_it()
+    {
+        _repository.RestoreProductAsync(Arg.Any<int>(), Arg.Any<string?>(), Arg.Any<CancellationToken>())
+                   .Returns(Given.Ok(true));
+
+        await Service.RestoreProductAsync(7, "user-99");
+
+        await _repository.Received(1).RestoreProductAsync(7, "user-99", Arg.Any<CancellationToken>());
     }
 
     [Fact]

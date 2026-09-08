@@ -1,6 +1,7 @@
 import { useState } from 'react';
 import { useNavigate, useParams } from 'react-router-dom';
 import { Field } from '../../components/Field';
+import { PhotoField } from '../../components/admin/PhotoField';
 import { Swatch } from '../../components/Swatch';
 import { ErrorState, Loading } from '../../components/Feedback';
 import { ApiError } from '../../lib/api';
@@ -255,6 +256,24 @@ export function ProductEditor() {
               />
               Show in the shop
             </label>
+
+            {/*  Only once the product exists: the upload posts to
+                /admin/products/{id}/image, and a product being created has no
+                id to post to yet. Save first, then add the photo.          */}
+            {productId ? (
+              <div className="mt-4 sm:col-span-2">
+                <PhotoField
+                  productId={productId}
+                  imagePath={existing?.imagePath}
+                  swatchColorValue={preview?.colorValue}
+                  swatchWeave={preview?.weave}
+                />
+              </div>
+            ) : (
+              <p className="mt-4 text-xs text-neutral-600 sm:col-span-2">
+                Save the product first, then you can add a photo to it.
+              </p>
+            )}
           </div>
 
           {formError && (

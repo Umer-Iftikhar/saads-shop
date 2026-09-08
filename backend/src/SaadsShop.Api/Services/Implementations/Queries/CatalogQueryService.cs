@@ -106,6 +106,7 @@ public sealed class CatalogQueryService(
                 StitchingDays   = p.StitchingDays,
                 InStock         = p.Stock > 0,
                 DefaultSwatchId = p.DefaultSwatchId,
+                ImagePath       = p.ImagePath,
                 Swatches        = result.Data.Swatches.Select(ToSwatchResponse).ToList(),
                 Related         = result.Data.Related.Select(ToSummary).ToList()
             };
@@ -147,7 +148,11 @@ public sealed class CatalogQueryService(
                 IsActive         = p.IsActive,
                 DefaultSwatchId  = p.DefaultSwatchId,
                 SwatchColorValue = p.SwatchColorValue,
-                SwatchWeave      = p.SwatchWeave
+                SwatchWeave      = p.SwatchWeave,
+                ImagePath        = p.ImagePath,
+                ThumbnailPath    = p.ThumbnailPath,
+                DeletedAt        = p.DeletedAt,
+                DeletedBy        = p.DeletedBy
             }).ToList(),
             TotalCount = result.Data.Page.TotalCount,
             Page       = result.Data.Page.Page,
@@ -200,6 +205,9 @@ public sealed class CatalogQueryService(
         // The storefront learns whether it can buy, not how many are left.
         InStock          = p.Stock > 0,
         DefaultSwatchId  = p.DefaultSwatchId,
+        //  The card-sized photo only. A listing page that pulled the full-size
+        //  one for every card would cost a phone several megabytes.
+        ThumbnailPath    = p.ThumbnailPath,
         SwatchColorValue = p.SwatchColorValue,
         SwatchWeave      = p.SwatchWeave
     };

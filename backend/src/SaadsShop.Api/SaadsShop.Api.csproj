@@ -16,6 +16,13 @@
     <PackageReference Include="Microsoft.AspNetCore.OpenApi" Version="10.0.11" />
     <PackageReference Include="Microsoft.Data.SqlClient" Version="7.0.2" />
     <PackageReference Include="Otp.NET" Version="1.4.1" />
+    <!--  Pinned to the 2.x line deliberately. ImageSharp changed licence at
+          3.0 to the Six Labors Split License; 1.x and 2.x are Apache-2.0.
+          2.1.11 is the newest Apache-2.0 release and is still patched — 1.0.4
+          carries six published advisories, three of them high, in the decoder
+          that would be parsing whatever a caller uploads. Same licence, none
+          of the holes. Check the licence before bumping past 2.x.        -->
+    <PackageReference Include="SixLabors.ImageSharp" Version="2.1.11" />
     <PackageReference Include="Serilog.AspNetCore" Version="10.0.0" />
     <PackageReference Include="Serilog.Sinks.Console" Version="6.1.1" />
     <PackageReference Include="Serilog.Sinks.File" Version="7.0.0" />

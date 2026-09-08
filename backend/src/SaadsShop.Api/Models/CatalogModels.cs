@@ -73,6 +73,18 @@ public class Product
     public int      StitchingDays   { get; set; }
     public int      Stock           { get; set; }
     public int      LowStockAt      { get; set; }
+
+    /// <summary>A photograph, once there is one. Null means the cloth is drawn instead.</summary>
+    public string?  ImagePath       { get; set; }
+
+    /// <summary>The card-sized version of the same photograph.</summary>
+    public string?  ThumbnailPath   { get; set; }
+
+    /// <summary>When the owner archived this product; null while it is in the shop.</summary>
+    public DateTime? DeletedAt      { get; set; }
+
+    /// <summary>Who archived it, by name — for the panel's archive list.</summary>
+    public string?  DeletedBy       { get; set; }
     public int?     DefaultSwatchId { get; set; }
     public int      SoldCount       { get; set; }
     public bool     IsActive        { get; set; }

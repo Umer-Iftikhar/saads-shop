@@ -1,6 +1,7 @@
 using SaadsShop.Api.Constants;
 using SaadsShop.Api.DTOs.Internal;
 using SaadsShop.Api.DTOs.Request;
+using SaadsShop.Api.DTOs.Response;
 using SaadsShop.Api.Repositories.Interfaces.Commands;
 using SaadsShop.Api.Services.Interfaces;
 using SaadsShop.Api.Services.Interfaces.Commands;
@@ -9,6 +10,7 @@ namespace SaadsShop.Api.Services.Implementations.Commands;
 
 public sealed class CatalogCommandService(
     ICatalogCommandRepository repository,
+    IProductImageService images,
     ICacheService cache,
     ILogger<CatalogCommandService> logger) : ICatalogCommandService
 {
@@ -49,9 +51,86 @@ public sealed class CatalogCommandService(
             return OperationResult<bool>.Failure(result.ResponseCode, result.ResponseMessage);
 
         InvalidateCatalog();
-        logger.LogInformation("Product {ProductId} removed by {ActorUserId}", productId, actorUserId);
+        logger.LogInformation("Product {ProductId} archived by {ActorUserId}", productId, actorUserId);
 
         return OperationResult<bool>.Success(true, result.ResponseMessage);
+    }
+
+    public async Task<OperationResult<bool>> RestoreProductAsync(
+        int productId, string? actorUserId, CancellationToken ct = default)
+    {
+        var result = await repository.RestoreProductAsync(productId, actorUserId, ct);
+
+        if (!result.IsSuccess)
+            return OperationResult<bool>.Failure(result.ResponseCode, result.ResponseMessage);
+
+        // The storefront cached the catalogue without this product in it.
+        InvalidateCatalog();
+        logger.LogInformation("Product {ProductId} restored by {ActorUserId}", productId, actorUserId);
+
+        return OperationResult<bool>.Success(true, result.ResponseMessage);
+    }
+
+    /// <summary>
+    /// Stores an uploaded photograph against a product.
+    /// </summary>
+    /// <remarks>
+    /// The file is written first and the row second, so a failure between the
+    /// two leaves an orphaned file rather than a row pointing at nothing. That
+    /// is the right way round: a stray file costs disk, whereas a product whose
+    /// photo 404s is broken on every screen it appears on. The orphan is cleaned
+    /// up here when the row write fails.
+    /// </remarks>
+    public async Task<OperationResult<ProductImageResponse>> SetProductImageAsync(
+        int productId, Stream content, string fileName, long length,
+        string? actorUserId, CancellationToken ct = default)
+    {
+        var stored = await images.SaveAsync(content, fileName, length, ct);
+
+        if (!stored.IsSuccess || stored.Value is null)
+            return OperationResult<ProductImageResponse>.FromFailure(stored);
+
+        var written = await repository.SetImageAsync(
+            productId, stored.Value.ImagePath, stored.Value.ThumbnailPath, actorUserId, ct);
+
+        if (!written.IsSuccess)
+        {
+            // The row never took the new photo, so the files it would have
+            // pointed at are rubbish.
+            images.TryDelete(stored.Value.ImagePath, stored.Value.ThumbnailPath);
+            return OperationResult<ProductImageResponse>.Failure(written.ResponseCode, written.ResponseMessage);
+        }
+
+        // Whatever the product had before is now unreferenced.
+        images.TryDelete(written.Data?.ImagePath, written.Data?.ThumbnailPath);
+
+        InvalidateCatalog();
+        logger.LogInformation("Photo set on product {ProductId} by {ActorUserId}", productId, actorUserId);
+
+        return OperationResult<ProductImageResponse>.Success(new ProductImageResponse
+        {
+            ImagePath     = stored.Value.ImagePath,
+            ThumbnailPath = stored.Value.ThumbnailPath,
+            Width         = stored.Value.Width,
+            Height        = stored.Value.Height,
+        }, written.ResponseMessage);
+    }
+
+    /// <summary>Removes a product's photograph, returning it to the drawn cloth.</summary>
+    public async Task<OperationResult<bool>> RemoveProductImageAsync(
+        int productId, string? actorUserId, CancellationToken ct = default)
+    {
+        var written = await repository.SetImageAsync(productId, null, null, actorUserId, ct);
+
+        if (!written.IsSuccess)
+            return OperationResult<bool>.Failure(written.ResponseCode, written.ResponseMessage);
+
+        images.TryDelete(written.Data?.ImagePath, written.Data?.ThumbnailPath);
+
+        InvalidateCatalog();
+        logger.LogInformation("Photo removed from product {ProductId} by {ActorUserId}", productId, actorUserId);
+
+        return OperationResult<bool>.Success(true, written.ResponseMessage);
     }
 
     /// <summary>
