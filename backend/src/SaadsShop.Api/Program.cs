@@ -1,9 +1,13 @@
 using System.Text.Json.Serialization;
 using Microsoft.AspNetCore.Mvc;
+using Microsoft.Extensions.FileProviders;
+using Microsoft.Extensions.Options;
+using SaadsShop.Api.Configuration;
 using SaadsShop.Api.Extensions;
 using SaadsShop.Api.Middlewares;
-using Serilog;
+using SaadsShop.Api.Services.Interfaces;
 using Serilog.Events;
+using Serilog;
 
 // A bootstrap logger so failures during startup — a missing connection string,
 // a placeholder signing key — are logged rather than vanishing into a silent
@@ -124,6 +128,45 @@ try
     }
 
     app.UseHttpsRedirection();
+
+    /*  Product photographs, served straight off disk.
+
+        Its own middleware rather than wwwroot, mapped only at the configured
+        request path, so nothing else on the server's filesystem is reachable
+        by URL. The files are named with GUIDs and re-encoded to WebP by
+        ProductImageService, so nothing a caller uploaded — filename or bytes —
+        is served back verbatim.
+
+        Long cache lifetime, safely: a new photograph is a new GUID, so a
+        cached URL can never be stale. Removing a photo removes the file, and
+        the storefront falls back to the drawn cloth.                        */
+    {
+        var imageOptions = app.Services.GetRequiredService<IOptions<ImageOptions>>().Value;
+        var imageService = app.Services.GetRequiredService<IProductImageService>();
+
+        Directory.CreateDirectory(imageService.ResolvedRoot);
+
+        app.UseStaticFiles(new StaticFileOptions
+        {
+            FileProvider = new PhysicalFileProvider(imageService.ResolvedRoot),
+            RequestPath  = imageOptions.RequestPath,
+
+            //  A file whose type we do not recognise is not served at all,
+            //  rather than served as something a browser might execute.
+            ServeUnknownFileTypes = false,
+
+            OnPrepareResponse = context =>
+            {
+                context.Context.Response.Headers.CacheControl = "public, max-age=31536000, immutable";
+
+                // The API's own CSP is default-src 'none', which would stop a
+                // browser rendering these. They are images, and nothing else.
+                context.Context.Response.Headers.ContentSecurityPolicy =
+                    "default-src 'none'; img-src 'self'; sandbox";
+            }
+        });
+    }
+
     app.UseCors();
     app.UseRateLimiter();
     app.UseAuthentication();

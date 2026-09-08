@@ -69,6 +69,8 @@ export interface ProductSummary {
   /** Whether it can be bought today. The count is the shop's business. */
   inStock: boolean;
   defaultSwatchId?: number | null;
+  /** A real photograph, card-sized. Null means the cloth is drawn instead. */
+  thumbnailPath?: string | null;
   swatchColorValue?: string | null;
   swatchWeave?: string | null;
 }
@@ -87,6 +89,8 @@ export interface ProductDetail {
   stitchingDays: number;
   inStock: boolean;
   defaultSwatchId?: number | null;
+  /** A real photograph for the product page, when the shop has taken one. */
+  imagePath?: string | null;
   swatches: Swatch[];
   related: ProductSummary[];
 }

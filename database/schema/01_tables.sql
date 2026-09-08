@@ -204,6 +204,13 @@ BEGIN
         Stock           INT            NOT NULL CONSTRAINT DF_Products_Stock DEFAULT (0),
         LowStockAt      INT            NOT NULL CONSTRAINT DF_Products_LowStockAt DEFAULT (6),
         DefaultSwatchId INT            NULL,
+        /*  A photograph, once the shop has taken one. Null means the storefront
+            draws the cloth in CSS instead — which is what every product does
+            until a real photo replaces it. Two paths: the product page wants
+            the full size, the cards want the thumbnail, and serving a 1600px
+            image into a 400px card is most of a phone's data allowance.     */
+        ImagePath       NVARCHAR(512)  NULL,
+        ThumbnailPath   NVARCHAR(512)  NULL,
         SoldCount       INT            NOT NULL CONSTRAINT DF_Products_SoldCount DEFAULT (0),
         IsActive        BIT            NOT NULL CONSTRAINT DF_Products_IsActive DEFAULT (1),
         /*  Archived, not deleted. IsActive alone says a product is not on the
@@ -259,6 +266,14 @@ GO
     ones simply switched off in the editor, so they are left alone: a NULL
     DeletedAt reads as "not archived", and the owner can archive it again if
     that is what they meant.                                                  */
+
+IF COL_LENGTH(N'dbo.Products', N'ImagePath') IS NULL
+    ALTER TABLE dbo.Products ADD ImagePath NVARCHAR(512) NULL;
+GO
+
+IF COL_LENGTH(N'dbo.Products', N'ThumbnailPath') IS NULL
+    ALTER TABLE dbo.Products ADD ThumbnailPath NVARCHAR(512) NULL;
+GO
 
 /*  Name and slug are unique among the products the shop actually has, not
     among every row ever created. Archiving has to free the name: otherwise an

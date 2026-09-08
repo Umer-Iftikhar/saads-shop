@@ -43,6 +43,10 @@ public sealed class ProductSummaryResponse
     public bool    InStock          { get; init; }
 
     public int?    DefaultSwatchId  { get; init; }
+
+    /// <summary>The card-sized photo, when the shop has one. Null draws the cloth.</summary>
+    public string? ThumbnailPath    { get; init; }
+
     public string? SwatchColorValue { get; init; }
     public string? SwatchWeave      { get; init; }
 
@@ -63,6 +67,9 @@ public sealed class ProductDetailResponse
     public int     StitchingDays   { get; init; }
     public bool    InStock         { get; init; }
     public int?    DefaultSwatchId { get; init; }
+
+    /// <summary>The full-size photo for the product page, when there is one.</summary>
+    public string? ImagePath       { get; init; }
 
     public IReadOnlyList<SwatchResponse>         Swatches { get; init; } = [];
     public IReadOnlyList<ProductSummaryResponse> Related  { get; init; } = [];
@@ -90,6 +97,9 @@ public sealed class ProductAdminResponse
     public string? SwatchWeave      { get; init; }
 
     /// <summary>Set when the product is archived rather than in the shop.</summary>
+    public string? ImagePath        { get; init; }
+    public string? ThumbnailPath    { get; init; }
+
     public DateTime? DeletedAt      { get; init; }
 
     /// <summary>Who archived it, so the panel can say so.</summary>
@@ -137,4 +147,13 @@ public sealed class ShopSettingsResponse
     public bool      CardPaymentEnabled    { get; init; }
     public DateTime? UpdatedAt             { get; init; }
     public string?   UpdatedBy             { get; init; }
+}
+
+/// <summary>Where a newly uploaded photograph can be found, and its size.</summary>
+public sealed class ProductImageResponse
+{
+    public required string ImagePath     { get; init; }
+    public required string ThumbnailPath { get; init; }
+    public int             Width         { get; init; }
+    public int             Height        { get; init; }
 }

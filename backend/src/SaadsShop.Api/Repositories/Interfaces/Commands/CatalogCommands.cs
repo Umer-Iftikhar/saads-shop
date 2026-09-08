@@ -26,4 +26,20 @@ public interface ICatalogCommandRepository
     /// <summary>Puts an archived product back in the shop, exactly as it was.</summary>
     Task<ProcedureResult<bool>> RestoreProductAsync(
         int productId, string? actorUserId, CancellationToken ct = default);
+
+    /// <summary>
+    /// Points a product at a stored photograph, or clears it when both paths are
+    /// null. Returns whatever was there before, so the files it replaced can be
+    /// removed from disk.
+    /// </summary>
+    Task<ProcedureResult<ReplacedImage>> SetImageAsync(
+        int productId, string? imagePath, string? thumbnailPath, string? actorUserId,
+        CancellationToken ct = default);
+}
+
+/// <summary>The photo paths a product carried before this write.</summary>
+public sealed class ReplacedImage
+{
+    public string? ImagePath     { get; set; }
+    public string? ThumbnailPath { get; set; }
 }

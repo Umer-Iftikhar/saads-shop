@@ -56,6 +56,14 @@ public static class ServiceCollectionExtensions
                     "an Origin header is matched as an exact string, so \"https://example.com/\" matches nothing.")
                 .ValidateOnStart();
 
+        services.AddOptions<ImageOptions>()
+                .Bind(configuration.GetSection(ImageOptions.SectionName))
+                .Validate(o => o.MaxUploadBytes is > 0 and <= 50 * 1024 * 1024,
+                          "Images:MaxUploadBytes must be between 1 byte and 50 MB.")
+                .Validate(o => o.RequestPath.StartsWith('/'),
+                          "Images:RequestPath must start with '/'.")
+                .ValidateOnStart();
+
         services.AddOptions<GoogleAuthOptions>()
                 .Bind(configuration.GetSection(GoogleAuthOptions.SectionName))
                 .ValidateOnStart();
@@ -71,6 +79,7 @@ public static class ServiceCollectionExtensions
         DapperTypeHandlers.Register();
 
         services.AddSingleton<ISqlConnectionFactory, SqlConnectionFactory>();
+        services.AddSingleton<IProductImageService, ProductImageService>();
 
         //  Reads and writes are registered as separate pairs the whole way
         //  down. A screen that only shows the catalogue asks for the query

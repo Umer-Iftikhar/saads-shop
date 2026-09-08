@@ -84,6 +84,23 @@ public sealed class CatalogCommandRepository(ISqlConnectionFactory connectionFac
             new { ProductId = productId, ActorUserId = actorUserId },
             ct);
 
+    public Task<ProcedureResult<ReplacedImage>> SetImageAsync(
+        int productId, string? imagePath, string? thumbnailPath, string? actorUserId,
+        CancellationToken ct = default)
+        => ExecuteAsync(
+            StoredProcedures.ProductSetImage,
+            new
+            {
+                ProductId     = productId,
+                ImagePath     = imagePath,
+                ThumbnailPath = thumbnailPath,
+                ActorUserId   = actorUserId
+            },
+            //  What was there before, so the caller can delete the files it
+            //  just replaced rather than leaving them on disk forever.
+            async grid => await grid.ReadSingleOrDefaultAsync<ReplacedImage>() ?? new ReplacedImage(),
+            ct);
+
     private sealed class CreatedProduct
     {
         public int?    ProductId { get; set; }

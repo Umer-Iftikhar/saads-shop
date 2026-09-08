@@ -185,5 +185,6 @@ noted where it is tested, since being stricter on the client is safe.
 
 ## Not here yet
 
-Photography — every product is drawn cloth until real photographs arrive.
+Photography is optional, not absent: a product with no photo is drawn in CSS from its
+cloth, and one with a photo shows it. Upload from the product editor.
 `VITE_API_BASE_URL` overrides the API base if you are not using the proxy.
