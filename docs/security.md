@@ -218,6 +218,49 @@ keys present but empty so the shape is documented. Startup **fails loudly** if t
 signing key is missing, shorter than 32 bytes, or still equal to a placeholder — a
 misconfigured deploy should not come up quietly signing tokens with a guessable key.
 
+## Where the tokens live, and why
+
+Asked often enough to write down.
+
+| | Where | Lifetime |
+| --- | --- | --- |
+| Access token | A module variable in `lib/api.ts` — memory only | 15 minutes |
+| Refresh token | `HttpOnly; Secure; SameSite=Strict; Path=/api/auth` | 14 days, rotating |
+
+**Neither is in `localStorage`.** The only thing the shop keeps there is the
+shopping cart, which holds no secrets. `api.test.ts` asserts the access token
+never reaches storage, and `AuthControllerTests` asserts every flag on the
+refresh cookie; both run in CI.
+
+### Why the access token is not also in a cookie
+
+It is the obvious next question, and the answer is that it would trade a small
+gain for a real cost.
+
+`HttpOnly` defends against **exfiltration** — a script reading the token and
+sending it somewhere to be used later, elsewhere. It does not defend against
+abuse in the page: script running on the page can call the API as the user
+whatever the token is kept in, simply by making requests. So the gain is
+bounded, and bounded further by the fifteen-minute lifetime: a token that has
+been stolen is useful for the rest of that quarter hour and no longer.
+
+Against that, a cookie is attached by the browser to every request to the
+origin. That is what makes CSRF possible, and defending against it means an
+anti-forgery token on every mutating endpoint — new code, in the part of the
+system where a mistake is most expensive. `SameSite=Strict` covers most of it,
+but "most" is doing real work in that sentence.
+
+The credential actually worth protecting is the refresh token: it is long-lived
+and it mints access tokens. It **is** `HttpOnly`, it rotates on every use, and
+replaying a spent one revokes the whole family. That is where the protection
+belongs, and that is where it is.
+
+This is the standard shape for a single-page application, and the shop is not
+unusual enough to depart from it. If the trade-off ever changes — a stricter
+compliance requirement, say — the work is: read the token from a cookie in the
+JWT bearer handler's `OnMessageReceived`, add anti-forgery to every mutating
+endpoint, and keep `SameSite=Strict`.
+
 ## What is deliberately not here
 
 - **No card payments.** The shop takes cash on delivery, WhatsApp orders and
