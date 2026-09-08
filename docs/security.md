@@ -105,7 +105,43 @@ Pakistani phone numbers are normalised and validated against `^(\+92|0)3\d{9}$`.
   A restrictive Content-Security-Policy is served, with no `unsafe-inline` for scripts.
 - **CSRF** — the API is stateless and reads bearer tokens from the `Authorization` header,
   which is not sent automatically cross-origin. The refresh cookie is `SameSite=Strict`.
-- **CORS** — an explicit allow-list of origins with credentials enabled. Never `*`.
+- **CORS** — an explicit allow-list of origins with credentials enabled. Never `*`, which
+  browsers refuse alongside credentials anyway. See below.
+
+## CORS
+
+The policy is one allow-list, applied by the default policy before authentication so a
+rejected preflight never reaches an endpoint:
+
+```csharp
+.WithOrigins(auth.AllowedOrigins)   // explicit; empty means same-origin only
+.AllowAnyHeader().AllowAnyMethod()
+.AllowCredentials()                 // the refresh cookie rides on these requests
+.WithExposedHeaders("X-Correlation-Id")
+.SetPreflightMaxAge(TimeSpan.FromMinutes(10))
+```
+
+Three things worth knowing:
+
+**An Origin is matched as an exact string.** `https://saadsshop.pk/` — with the trailing
+slash — matches nothing, and the only symptom is a CORS error in a browser console the
+server never sees. Startup validation now rejects any entry that is not bare
+`scheme://host[:port]`, so a typo fails at boot with a message naming the rule instead of
+becoming someone else's afternoon. `http://localhost` and `http://127.0.0.1` are likewise
+different origins; both are listed in development.
+
+**A refused origin still gets a normal response from `curl`.** CORS is enforced by the
+browser, not the server: the API answers, omits the `Access-Control-Allow-Origin` header,
+and the browser discards the response. Testing with `curl` and seeing `200` is not a hole —
+the absence of the header is the control.
+
+**CORS and the refresh cookie have to agree.** The cookie is `SameSite=Strict`, so a
+front end on a genuinely different site cannot send it however permissive CORS is. The
+supported deployments are same-origin (the SPA served by, or proxied through, the API's
+origin — what development does through Vite) or same-site (`saadsshop.pk` calling
+`api.saadsshop.pk`, where Strict still applies). Hosting the SPA on an unrelated domain
+means relaxing `RefreshCookieSameSiteStrict`, and that is a deliberate decision with its
+own CSRF cost, not a configuration detail.
 
 ## Transport and headers
 

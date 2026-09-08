@@ -48,6 +48,12 @@ public static class ServiceCollectionExtensions
                 .ValidateDataAnnotations()
                 .Validate(o => o.AllowedOrigins.All(origin => !origin.Contains('*')),
                     "CORS origins must be listed explicitly. '*' with credentials is refused by browsers and defeats the point.")
+                //  A malformed origin never matches anything, and the only
+                //  symptom is a CORS error in someone else's browser console.
+                //  Fail at boot, where the message can name the entry.
+                .Validate(o => o.AllowedOrigins.All(AuthOptions.IsWellFormedOrigin),
+                    "Each CORS origin must be scheme://host[:port] with no trailing slash and no path — " +
+                    "an Origin header is matched as an exact string, so \"https://example.com/\" matches nothing.")
                 .ValidateOnStart();
 
         services.AddOptions<GoogleAuthOptions>()
@@ -308,7 +314,15 @@ public static class ServiceCollectionExtensions
                 .AllowAnyHeader()
                 .AllowAnyMethod()
                 .AllowCredentials()
-                .WithExposedHeaders(Middlewares.CorrelationIdMiddleware.HeaderName)));
+                // The correlation id is the one header a client needs to read
+                // back; without this the browser hides it from JavaScript.
+                .WithExposedHeaders(Middlewares.CorrelationIdMiddleware.HeaderName)
+                //  Without a max-age every request with a JSON body or an
+                //  Authorization header preflights, doubling the round trips on
+                //  a connection that may already be slow. Ten minutes is short
+                //  enough that changing the policy takes effect promptly and is
+                //  what Chrome caps browsers at anyway.
+                .SetPreflightMaxAge(TimeSpan.FromMinutes(10))));
 
         return services;
     }
