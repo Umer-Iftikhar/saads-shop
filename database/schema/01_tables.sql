@@ -304,7 +304,10 @@ BEGIN
         CONSTRAINT CK_OrderLines_Quantity CHECK (Quantity > 0 AND Quantity <= 999),
         CONSTRAINT CK_OrderLines_Money    CHECK (UnitPrice >= 0 AND LineTotal >= 0)
     );
-    CREATE INDEX IX_OrderLines_OrderId   ON dbo.OrderLines (OrderId);
+    /*  ProductName is included because the orders list builds its "what was
+        ordered" summary from it, once per row on screen. Without it every one
+        of those is a lookup back into the table — see 03_indexes.sql.        */
+    CREATE INDEX IX_OrderLines_OrderId   ON dbo.OrderLines (OrderId) INCLUDE (ProductName);
     CREATE INDEX IX_OrderLines_ProductId ON dbo.OrderLines (ProductId);
 END
 GO

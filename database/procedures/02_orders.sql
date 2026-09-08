@@ -449,7 +449,22 @@ BEGIN
                 AND @Status NOT IN (N'Placed', N'Measuring', N'Stitching', N'Ready', N'Delivered', N'Cancelled')
             SELECT @ResponseCode = 400, @ResponseMessage = N'Unknown order status.';
         ELSE IF @FromDate IS NOT NULL AND @ToDate IS NOT NULL AND @FromDate > @ToDate
-            SELECT @ResponseCode = 400, @ResponseMessage = N'The start date must be before the end date.';
+            SELECT @ResponseCode = 400, @ResponseMessage = N'The start date must be on or before the end date.';
+
+        /*  The same three rules the browser applies and [DateRange] applies
+            again — start on or before end, nothing in the future, a year at
+            most. All three belong here as well: this procedure is reachable by
+            anything holding a connection, not only by the API that guards it.
+            Only the first was ever written; the other two are below.         */
+        ELSE IF (@FromDate IS NOT NULL AND @FromDate > CAST(SYSUTCDATETIME() AS DATE))
+             OR (@ToDate   IS NOT NULL AND @ToDate   > CAST(SYSUTCDATETIME() AS DATE))
+            SELECT @ResponseCode = 400, @ResponseMessage = N'Dates cannot be in the future.';
+
+        /*  +1 because the range includes both ends: 1 Jan to 1 Jan is one day. */
+        ELSE IF @FromDate IS NOT NULL AND @ToDate IS NOT NULL
+                AND DATEDIFF(DAY, @FromDate, @ToDate) + 1 > 366
+            SELECT @ResponseCode = 400,
+                   @ResponseMessage = N'That range is longer than a year. Please choose 366 days or fewer.';
 
         IF @ResponseCode = 200
         BEGIN
