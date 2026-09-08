@@ -21,6 +21,16 @@ public sealed class TokenService : ITokenService
     {
         _options = options.Value;
         _key     = new SymmetricSecurityKey(Encoding.UTF8.GetBytes(_options.SigningKey));
+
+        //  Read a token back exactly as it was written.
+        //
+        //  JwtSecurityTokenHandler ships with a claim-type map that silently
+        //  renames the registered claims on the way in — "sub" arrives as
+        //  ClaimTypes.NameIdentifier, a WS-Federation URI. Looking for "sub"
+        //  afterwards then finds nothing, which is how the two-factor challenge
+        //  token came back with no user on it and every 2FA sign-in answered
+        //  "that sign-in attempt has expired".
+        _handler.InboundClaimTypeMap.Clear();
     }
 
     public (string Token, DateTime ExpiresAt) CreateAccessToken(AppUser user, IEnumerable<string> authMethods)

@@ -91,6 +91,27 @@ Run against the live API on SQL Server 2022 with the seeded catalogue:
 
 `dotnet build` completes with **0 warnings, 0 errors**.
 
+## Two bugs the shop panel found
+
+Both were invisible to the compiler and to reading, and both turned up the first
+time a browser drove the whole flow:
+
+**Every 2FA sign-in answered "that sign-in attempt has expired."**
+`JwtSecurityTokenHandler` ships with an inbound claim-type map that quietly
+renames the registered claims — `sub` arrives as `ClaimTypes.NameIdentifier`, a
+WS-Federation URI. `ValidateTwoFactorChallengeToken` then looked for `sub`, found
+nothing, and reported no user on a perfectly valid token. `TokenService` now
+clears that map, so a token reads back exactly as it was written. The controllers
+were unaffected because `CurrentUserId` already fell back to the mapped name —
+which is precisely why nothing else caught it.
+
+**`DateOnly` cannot be a SQL parameter.** Microsoft.Data.SqlClient throws
+*"The member Today of type System.DateOnly cannot be used as a parameter value"*
+when the command is built, so the dashboard and the order date filter both failed
+at runtime with a 500. `Data/DateOnlyTypeHandler` teaches Dapper the conversion
+in one place, which keeps `DateOnly` in the repository signatures where it
+belongs — a date filter is a date, not an instant.
+
 ## Not here yet
 
 Unit and integration tests are the next phase — see the repository's open pull

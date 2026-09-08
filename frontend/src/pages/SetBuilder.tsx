@@ -132,7 +132,7 @@ export function SetBuilder() {
 
   if (!sheet || !curtain || !cushion) {
     return (
-      <main id="main" className="page page-pad" style={{ paddingBlock: 40 }}>
+      <main id="main" className="page py-10">
         <ErrorState
           title="The set builder is short of cloth"
           detail="It needs a bed sheet, a curtain and a cushion set in the catalogue. Ask the shop to add them."
@@ -142,17 +142,23 @@ export function SetBuilder() {
   }
 
   return (
-    <main id="main" className="page page-pad" style={{ paddingBlock: '34px 64px' }}>
-      <h1 className="display-page" style={{ margin: '0 0 8px' }}>Build your set</h1>
+    <main id="main" className="page pb-16 pt-[34px]">
+      <h1 className="display-page mb-2 mt-0">Build your set</h1>
 
-      <p style={{ margin: '0 0 26px', color: 'var(--color-neutral-700)', fontSize: 16, maxWidth: '62ch' }}>
+      <p className="mb-6 mt-0 max-w-[62ch] text-base text-neutral-700">
         Pick the cloth for the bistar, the parde and the cushions. The room updates as you
         go — then send the combination to the shop.
       </p>
 
-      <div className="builder-split">
+      {/*  Three columns at the design's width; the summary drops below the
+          room first, then the pickers stack too on a phone.                */}
+      <div
+        className="grid grid-cols-1 items-start gap-7
+                   md:grid-cols-[220px_1fr] 3xl:grid-cols-[250px_1fr_290px]
+                   [&>*:last-child]:md:col-span-full [&>*:last-child]:3xl:col-span-1"
+      >
         {/* ── the three pickers ────────────────────────────────────── */}
-        <div style={{ display: 'flex', flexDirection: 'column', gap: 22 }}>
+        <div className="flex flex-col gap-5">
           <SlotPicker
             title="Bistar — the sheet"
             picked={cloth.sheet?.name}
@@ -184,60 +190,68 @@ export function SetBuilder() {
             `${cloth.curtain?.name ?? 'plain'} curtains and ` +
             `${cloth.cushion?.name ?? 'plain'} cushions, on a ${bedSize.toLowerCase()} bed.`
           }
-          style={{
-            position: 'relative', height: 520, borderRadius: 'var(--radius-lg)',
-            overflow: 'hidden', background: 'var(--color-neutral-200)', boxShadow: 'var(--shadow-md)',
-          }}
+          className="relative h-[520px] overflow-hidden rounded-lg bg-neutral-200 shadow-md"
         >
-          <div style={{ position: 'absolute', left: 0, right: 0, bottom: 0, height: '22%', background: 'var(--color-neutral-300)' }} />
+          {/* floor */}
+          <div className="absolute inset-x-0 bottom-0 h-[22%] bg-neutral-300" />
           {/* window */}
-          <div style={{ position: 'absolute', left: '7%', top: '9%', width: '38%', height: '46%', borderRadius: '999px 999px 20px 20px', background: 'linear-gradient(#fffaf0, #ffe7d4)', boxShadow: 'inset 0 0 0 6px var(--color-neutral-100)' }} />
+          <div className="absolute left-[7%] top-[9%] h-[46%] w-[38%] rounded-b-[20px] rounded-t-full
+                          bg-[linear-gradient(#fffaf0,#ffe7d4)] shadow-[inset_0_0_0_6px_var(--color-neutral-100)]" />
           {/* curtain panels */}
-          <div style={{ position: 'absolute', left: '3%',  top: '6%', width: '15%', height: '56%', borderRadius: '999px 999px 16px 16px', background: fabricBackground(cloth.curtain?.colorValue, cloth.curtain?.weave), boxShadow: 'var(--shadow-md)' }} />
-          <div style={{ position: 'absolute', left: '34%', top: '6%', width: '15%', height: '56%', borderRadius: '999px 999px 16px 16px', background: fabricBackground(cloth.curtain?.colorValue, cloth.curtain?.weave), boxShadow: 'var(--shadow-md)' }} />
+          <div
+            className="absolute left-[3%] top-[6%] h-[56%] w-[15%] rounded-b-2xl rounded-t-full shadow-md"
+            style={{ background: fabricBackground(cloth.curtain?.colorValue, cloth.curtain?.weave) }}
+          />
+          <div
+            className="absolute left-[34%] top-[6%] h-[56%] w-[15%] rounded-b-2xl rounded-t-full shadow-md"
+            style={{ background: fabricBackground(cloth.curtain?.colorValue, cloth.curtain?.weave) }}
+          />
           {/* bed */}
-          <div style={{ position: 'absolute', right: '5%', bottom: '14%', width: '58%', height: '34%', borderRadius: 26, background: fabricBackground(cloth.sheet?.colorValue, cloth.sheet?.weave), boxShadow: 'var(--shadow-lg)' }} />
-          <div style={{ position: 'absolute', right: '60%', bottom: '14%', width: '8%', height: '44%', borderRadius: '999px 999px 0 0', background: 'var(--color-neutral-400)' }} />
+          <div
+            className="absolute bottom-[14%] right-[5%] h-[34%] w-[58%] rounded-[26px] shadow-lg"
+            style={{ background: fabricBackground(cloth.sheet?.colorValue, cloth.sheet?.weave) }}
+          />
+          <div className="absolute bottom-[14%] right-[60%] h-[44%] w-[8%] rounded-t-full bg-neutral-400" />
           {/* cushions */}
-          <div style={{ position: 'absolute', right: '44%', bottom: '36%', width: 72, height: 72, borderRadius: 24, background: fabricBackground(cloth.cushion?.colorValue, cloth.cushion?.weave), boxShadow: 'var(--shadow-md)' }} />
-          <div style={{ position: 'absolute', right: '30%', bottom: '36%', width: 58, height: 58, borderRadius: 20, background: fabricBackground(cloth.cushion?.colorValue, cloth.cushion?.weave), boxShadow: 'var(--shadow-sm)' }} />
+          <div
+            className="absolute bottom-[36%] right-[44%] h-[72px] w-[72px] rounded-3xl shadow-md"
+            style={{ background: fabricBackground(cloth.cushion?.colorValue, cloth.cushion?.weave) }}
+          />
+          <div
+            className="absolute bottom-[36%] right-[30%] h-[58px] w-[58px] rounded-[20px] shadow-sm"
+            style={{ background: fabricBackground(cloth.cushion?.colorValue, cloth.cushion?.weave) }}
+          />
 
-          <div style={{ position: 'absolute', left: 22, bottom: 20, background: 'var(--color-bg)', borderRadius: 999, padding: '8px 16px', fontSize: 12, boxShadow: 'var(--shadow-sm)' }}>
+          <div className="absolute bottom-5 left-5 rounded-full bg-bg px-4 py-2 text-xs shadow-sm">
             Preview · {bedSize} bed
           </div>
         </div>
 
         {/* ── the summary ──────────────────────────────────────────── */}
-        <div className="card elev-md" style={{ padding: 24, gap: 0 }}>
-          <h2 style={{ fontSize: 23, marginBottom: 14 }}>Your set</h2>
+        <div className="card gap-0 p-6 shadow-md">
+          <h2 className="mb-3.5 text-[23px]">Your set</h2>
 
           {quote?.lines.map(line => (
-            <div
-              key={line.slot}
-              style={{
-                display: 'flex', justifyContent: 'space-between', gap: 12, fontSize: 14,
-                padding: '9px 0', borderBottom: '1px solid var(--color-divider)',
-              }}
-            >
+            <div key={line.slot} className="flex justify-between gap-3 border-b border-divider py-2 text-sm">
               <span>
                 {line.slot} · {line.slot === 'Bistar' ? cloth.sheet?.name : line.slot === 'Parde' ? cloth.curtain?.name : cloth.cushion?.name}
-                {!line.inStock && <span className="tag tag-neutral" style={{ marginLeft: 6 }}>Out of stock</span>}
+                {!line.inStock && <span className="tag tag-neutral ml-1.5">Out of stock</span>}
               </span>
-              <span style={{ fontWeight: 700, whiteSpace: 'nowrap' }}>{formatPkr(line.unitPrice)}</span>
+              <span className="whitespace-nowrap font-bold">{formatPkr(line.unitPrice)}</span>
             </div>
           ))}
 
           {quoteMutation.isPending && !quote && (
-            <p style={{ fontSize: 14, color: 'var(--color-neutral-600)' }}>Pricing your set…</p>
+            <p className="text-sm text-neutral-600">Pricing your set…</p>
           )}
 
           {quoteError && <div className="field-error" role="alert">{quoteError}</div>}
 
-          <fieldset style={{ border: 0, padding: 0, margin: '16px 0 0' }}>
-            <legend style={{ fontSize: 12, color: 'var(--color-neutral-600)', marginBottom: 8, padding: 0 }}>
+          <fieldset className="mt-4 border-0 p-0">
+            <legend className="mb-2 p-0 text-xs text-neutral-600">
               BED SIZE
             </legend>
-            <div style={{ display: 'flex', gap: 7, flexWrap: 'wrap', marginBottom: 16 }}>
+            <div className="mb-4 flex flex-wrap gap-1.5">
               {bedSizes.data?.map(size => (
                 <button
                   key={size.bedSizeCode}
@@ -252,17 +266,16 @@ export function SetBuilder() {
             </div>
           </fieldset>
 
-          <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'baseline', marginBottom: 16 }}>
-            <span style={{ fontSize: 13, color: 'var(--color-neutral-600)' }}>Total</span>
-            <span style={{ fontFamily: 'var(--font-heading)', fontSize: 28 }} aria-live="polite">
+          <div className="mb-4 flex items-baseline justify-between">
+            <span className="text-[13px] text-neutral-600">Total</span>
+            <span className="font-heading text-[28px]" aria-live="polite">
               {quote ? formatPkr(quote.total) : '—'}
             </span>
           </div>
 
           <button
             type="button"
-            className="btn btn-primary btn-block"
-            style={{ padding: 13 }}
+            className="btn btn-primary btn-block p-3"
             onClick={addSetToCart}
             disabled={!quote}
           >
@@ -283,8 +296,8 @@ function SlotPicker({ title, picked, swatches, selectedId, onSelect }: {
 }) {
   return (
     <div>
-      <h2 style={{ fontSize: 19, marginBottom: 3 }}>{title}</h2>
-      <div style={{ fontSize: 12, color: 'var(--color-neutral-600)', marginBottom: 10 }}>{picked ?? '—'}</div>
+      <h2 className="mb-1 text-[19px]">{title}</h2>
+      <div className="mb-2.5 text-xs text-neutral-600">{picked ?? '—'}</div>
       <SwatchGroup label={title} swatches={swatches} selectedId={selectedId} onSelect={onSelect} size={62} />
     </div>
   );

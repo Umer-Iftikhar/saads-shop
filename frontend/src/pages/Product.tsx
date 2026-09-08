@@ -35,13 +35,13 @@ export function Product() {
 
   if (product.isError || !product.data) {
     return (
-      <main id="main" className="page page-pad" style={{ paddingBlock: 40 }}>
+      <main id="main" className="page py-10">
         <ErrorState
           title="We could not find that product"
           detail="It may have sold out and been taken down. The wedding sets are still here."
           onRetry={() => product.refetch()}
         />
-        <div style={{ textAlign: 'center' }}>
+        <div className="text-center">
           <Link to="/wedding-sets" className="btn btn-primary">See wedding sets</Link>
         </div>
       </main>
@@ -77,34 +77,29 @@ export function Product() {
     `${chosen ? ` in ${chosen.name}` : ''}${takesBedSize ? ` (${bedSize})` : ''}.`;
 
   return (
-    <main id="main" className="page page-pad" style={{ paddingBlock: '30px 64px' }}>
-      <Link to={`/${item.categorySlug}`} style={{ fontSize: 14, display: 'inline-block', marginBottom: 20 }}>
+    <main id="main" className="page pb-16 pt-[30px]">
+      <Link to={`/${item.categorySlug}`} className="mb-5 inline-block text-sm">
         ← Back to {item.categoryName.toLowerCase()}
       </Link>
 
-      <div className="product-split">
+      <div className="grid grid-cols-1 items-start gap-12 2xl:grid-cols-[1fr_0.85fr]">
         <div>
           <div
-            className="washed"
-            style={{
-              height: 470,
-              borderRadius: 'var(--radius-lg)',
-              background: fabricBackground(chosen?.colorValue, chosen?.weave),
-              boxShadow: 'var(--shadow-lg)',
-            }}
+            className="washed h-[470px] rounded-lg shadow-lg"
+            style={{ background: fabricBackground(chosen?.colorValue, chosen?.weave) }}
             role="img"
             aria-label={`${item.name} in ${chosen?.name ?? 'the shop cloth'}`}
           />
 
           {item.swatches.length > 0 && (
-            <div style={{ marginTop: 16 }}>
+            <div className="mt-4">
               <SwatchGroup
                 label="Choose the cloth"
                 swatches={item.swatches}
                 selectedId={swatchId}
                 onSelect={setPickedSwatchId}
               />
-              <p style={{ fontSize: 13, color: 'var(--color-neutral-600)', marginTop: 12 }}>
+              <p className="mt-3 text-[13px] text-neutral-600">
                 Fabric: {chosen?.name} · tap a swatch to change the cloth
               </p>
             </div>
@@ -114,26 +109,26 @@ export function Product() {
         <div>
           {item.kicker && <span className="tag tag-accent">{item.kicker}</span>}
 
-          <h1 style={{ fontSize: 'clamp(32px, 4vw, 50px)', lineHeight: 1, margin: '16px 0 12px' }}>
+          <h1 className="mb-3 mt-4 text-[clamp(32px,4vw,50px)]/none">
             {item.name}
           </h1>
 
           {item.longDescription && (
-            <p style={{ fontSize: 17, color: 'var(--color-neutral-700)', margin: '0 0 20px', textWrap: 'pretty' }}>
+            <p className="mb-5 mt-0 text-[17px] text-pretty text-neutral-700">
               {item.longDescription}
             </p>
           )}
 
-          <div style={{ fontFamily: 'var(--font-heading)', fontSize: 36, marginBottom: 24 }}>
+          <div className="mb-6 font-heading text-4xl">
             {formatPkr(item.price)}
           </div>
 
           {takesBedSize && bedSizes.data && (
-            <fieldset style={{ border: 0, padding: 0, margin: '0 0 24px' }}>
-              <legend style={{ fontSize: 12, color: 'var(--color-neutral-600)', marginBottom: 8, padding: 0 }}>
+            <fieldset className="mb-6 border-0 p-0">
+              <legend className="mb-2 p-0 text-xs text-neutral-600">
                 BED SIZE
               </legend>
-              <div style={{ display: 'flex', gap: 8, flexWrap: 'wrap' }}>
+              <div className="flex flex-wrap gap-2">
                 {bedSizes.data.map(size => (
                   <button
                     key={size.bedSizeCode}
@@ -144,7 +139,7 @@ export function Product() {
                   >
                     {size.name}
                     {size.priceAdjustment !== 0 && (
-                      <span className="chip-note">
+                      <span className="text-xs opacity-75">
                         {size.priceAdjustment > 0 ? '+' : '−'}{formatPkr(Math.abs(size.priceAdjustment))}
                       </span>
                     )}
@@ -154,7 +149,7 @@ export function Product() {
             </fieldset>
           )}
 
-          <div style={{ display: 'flex', flexDirection: 'column', gap: 10, maxWidth: 340 }}>
+          <div className="flex max-w-[340px] flex-col gap-2.5">
             <button
               type="button"
               className="btn btn-primary btn-block btn-lg"
@@ -176,17 +171,17 @@ export function Product() {
 
           {/*  Announced politely so a screen reader hears the confirmation
               without the focus being yanked away from the button.           */}
-          <div aria-live="polite" style={{ minHeight: 24, marginTop: 10 }}>
+          <div aria-live="polite" className="mt-2.5 min-h-6">
             {added && (
               <span className="tag tag-accent-2">
-                Added to your cart · <Link to="/cart" style={{ color: 'inherit' }}>view cart</Link>
+                Added to your cart · <Link to="/cart" className="text-inherit">view cart</Link>
               </span>
             )}
           </div>
 
-          <div style={{ marginTop: 28, padding: 22, borderRadius: 'var(--radius-lg)', background: 'var(--color-surface)' }}>
-            <h2 style={{ fontSize: 19, marginBottom: 8 }}>Made to measure</h2>
-            <p style={{ margin: 0, fontSize: 14, color: 'var(--color-neutral-700)' }}>
+          <div className="mt-7 rounded-lg bg-surface p-5">
+            <h2 className="mb-2 text-[19px]">Made to measure</h2>
+            <p className="m-0 text-sm text-neutral-700">
               Bring your bed or window measurements to the shop, or send them on WhatsApp.
               Stitching takes {item.stitchingDays === 1 ? 'one working day' : `${item.stitchingDays} working days`};
               wedding orders get priority in shaadi season.
@@ -196,9 +191,9 @@ export function Product() {
       </div>
 
       {item.related.length > 0 && (
-        <section style={{ marginTop: 64 }}>
-          <h2 className="display-section" style={{ marginBottom: 18 }}>More {item.categoryName.toLowerCase()}</h2>
-          <div className="grid-3">
+        <section className="mt-16">
+          <h2 className="display-section mb-4">More {item.categoryName.toLowerCase()}</h2>
+          <div className="grid grid-cols-1 gap-[22px] md:grid-cols-2 2xl:grid-cols-3">
             {item.related.map(related => (
               <ProductCard key={related.productId} product={related} size="listing" />
             ))}

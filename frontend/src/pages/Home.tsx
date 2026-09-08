@@ -28,55 +28,54 @@ export function Home() {
   return (
     <>
       {/* ── hero ─────────────────────────────────────────────────────── */}
-      <section className="page page-pad hero">
+      <section
+        className="page grid grid-cols-1 items-center gap-8 pb-12 pt-10
+                   2xl:grid-cols-[1.05fr_0.95fr] 2xl:gap-12 2xl:pb-[72px] 2xl:pt-16"
+      >
         <div>
-          <span className="tag tag-accent-2" style={{ marginBottom: 20, display: 'inline-flex' }}>
+          <span className="tag tag-accent-2 mb-5 inline-flex">
             Shaadi season · stitched to measure
           </span>
 
-          <h1 className="display-hero" style={{ margin: '0 0 22px', maxWidth: '12ch' }}>
+          <h1 className="display-hero mb-5 mt-0 max-w-[12ch]">
             Wedding sets, made in Rawalpindi.
           </h1>
 
-          <p style={{
-            fontSize: 19, lineHeight: 1.6, maxWidth: '46ch',
-            color: 'var(--color-neutral-700)', margin: '0 0 30px', textWrap: 'pretty',
-          }}>
+          <p className="mb-7 mt-0 max-w-[46ch] text-[19px]/[1.6] text-pretty text-neutral-700">
             Bridal bedding — sheets, covers and cushions — and full room packages with the
             parde matched to the bistar. Pick your cloth in the shop, or build the set here.
           </p>
 
-          <div style={{ display: 'flex', gap: 12, flexWrap: 'wrap' }}>
+          <div className="flex flex-wrap gap-3">
             <Link to="/build-your-set" className="btn btn-primary btn-lg">Build your set</Link>
             <Link to="/wedding-sets" className="btn btn-secondary btn-lg">See wedding sets</Link>
           </div>
         </div>
 
-        {/* Decorative cloth shapes — the design's stand-in for photography. */}
-        <div className="hero-art" aria-hidden="true">
-          <div style={{ position: 'absolute', inset: '0 20% 22% 0', borderRadius: 'var(--radius-lg)', background: cloth(5), boxShadow: 'var(--shadow-lg)' }} />
-          <div style={{ position: 'absolute', right: 0, top: '16%', width: '46%', height: '52%', borderRadius: '999px 999px 24px 24px', background: cloth(1), boxShadow: 'var(--shadow-md)' }} />
-          <div style={{ position: 'absolute', left: '12%', bottom: 0, width: 148, height: 148, borderRadius: '50%', background: cloth(4), boxShadow: 'var(--shadow-md)' }} />
-          <div style={{
-            position: 'absolute', right: '14%', bottom: '2%', background: 'var(--color-bg)',
-            borderRadius: 999, padding: '10px 18px', fontSize: 13, boxShadow: 'var(--shadow-sm)',
-          }}>
+        {/*  Decorative cloth shapes — the design's stand-in for photography.
+            Hidden below the split, where they would cost a full screen of
+            scrolling before the first real content.                         */}
+        <div className="relative hidden h-[460px] 2xl:block" aria-hidden="true">
+          <div className="absolute inset-y-0 bottom-[22%] left-0 right-[20%] rounded-lg shadow-lg" style={{ background: cloth(5) }} />
+          <div className="absolute right-0 top-[16%] h-[52%] w-[46%] rounded-b-3xl rounded-t-full shadow-md" style={{ background: cloth(1) }} />
+          <div className="absolute bottom-0 left-[12%] h-[148px] w-[148px] rounded-full shadow-md" style={{ background: cloth(4) }} />
+          <div className="absolute bottom-[2%] right-[14%] rounded-full bg-bg px-[18px] py-2.5 text-[13px] shadow-sm">
             Custom stitching · 3 days
           </div>
         </div>
       </section>
 
       {/* ── bridal & jahez ───────────────────────────────────────────── */}
-      <section className="page page-pad" style={{ paddingBottom: 64 }}>
-        <div style={{ display: 'flex', alignItems: 'end', justifyContent: 'space-between', gap: 24, marginBottom: 18 }}>
-          <h2 className="display-section" style={{ margin: 0 }}>Bridal &amp; jahez sets</h2>
-          <Link to="/wedding-sets" style={{ fontSize: 15 }}>All sets →</Link>
+      <section className="page pb-16">
+        <div className="mb-4 flex items-end justify-between gap-6">
+          <h2 className="display-section m-0">Bridal &amp; jahez sets</h2>
+          <Link to="/wedding-sets" className="text-[15px]">All sets →</Link>
         </div>
 
-        <div className="grid-3">
+        <div className="grid grid-cols-1 gap-[22px] md:grid-cols-2 2xl:grid-cols-3">
           {featured.isPending && <CardSkeleton count={3} height={360} />}
           {featured.isError && (
-            <div style={{ gridColumn: '1 / -1' }}>
+            <div className="col-span-full">
               <ErrorState
                 title="Could not load the wedding sets"
                 detail="The shop is still here — this is our end."
@@ -91,34 +90,37 @@ export function Home() {
       </section>
 
       {/* ── set builder invitation ───────────────────────────────────── */}
-      <section className="page page-pad" style={{ paddingBottom: 64 }}>
-        <div className="builder-promo">
+      <section className="page pb-16">
+        <div
+          className="grid grid-cols-1 items-center gap-8 rounded-lg bg-neutral-900 px-7 py-8
+                     text-neutral-100 2xl:grid-cols-[1.2fr_0.8fr] 2xl:gap-10 2xl:px-[50px] 2xl:py-[46px]"
+        >
           <div>
-            <h2 style={{ fontSize: 'clamp(28px, 3.4vw, 42px)', margin: '0 0 12px', color: 'var(--color-accent-300)' }}>
+            <h2 className="mb-3 mt-0 text-[clamp(28px,3.4vw,42px)] text-accent-300">
               Match the parde to the bistar.
             </h2>
-            <p style={{ margin: '0 0 20px', fontSize: 17, color: 'var(--color-neutral-300)', maxWidth: '48ch' }}>
+            <p className="mb-5 mt-0 max-w-[48ch] text-[17px] text-neutral-300">
               Click through the fabric swatches and watch the room change. When it looks right,
               send the combination to the shop and we stitch it.
             </p>
-            <Link to="/build-your-set" className="btn btn-primary" style={{ padding: '12px 24px' }}>
+            <Link to="/build-your-set" className="btn btn-primary px-6 py-3">
               Open the set builder
             </Link>
           </div>
 
-          <div style={{ display: 'flex', gap: 10 }} aria-hidden="true">
+          <div className="flex gap-2.5" aria-hidden="true">
             {[0, 5, 1, 4].map(index => (
-              <div key={index} style={{ flex: 1, height: 160, borderRadius: 999, background: cloth(index) }} />
+              <div key={index} className="h-40 flex-1 rounded-full" style={{ background: cloth(index) }} />
             ))}
           </div>
         </div>
       </section>
 
       {/* ── everyday ─────────────────────────────────────────────────── */}
-      <section className="page page-pad" style={{ paddingBottom: 64 }}>
-        <h2 className="display-section" style={{ margin: '0 0 18px' }}>Bistar, parde, chhata</h2>
+      <section className="page pb-16">
+        <h2 className="display-section mb-4 mt-0">Bistar, parde, chhata</h2>
 
-        <div className="grid-4">
+        <div className="grid grid-cols-1 gap-[18px] md:grid-cols-2 3xl:grid-cols-4">
           {everyday.isPending && <CardSkeleton count={4} height={230} />}
           {everyday.data?.items.map(product => (
             <ProductCard key={product.productId} product={product} size="compact" />
@@ -127,31 +129,27 @@ export function Home() {
       </section>
 
       {/* ── three ways to order ──────────────────────────────────────── */}
-      <section style={{ background: 'var(--color-surface)' }}>
-        <div className="page page-pad" style={{ padding: '56px 40px' }}>
-          <h2 className="display-section" style={{ margin: '0 0 34px' }}>Three ways to order</h2>
+      <section className="bg-surface">
+        <div className="page py-14">
+          <h2 className="display-section mb-8 mt-0">Three ways to order</h2>
 
-          <div className="grid-3" style={{ gap: 30 }}>
+          <div className="grid grid-cols-1 gap-[30px] md:grid-cols-2 2xl:grid-cols-3">
             {[
               { n: '1', title: 'Cash on delivery', body: 'We bring the set to your door inside Rawalpindi and you pay the rider.' },
               { n: '2', title: 'WhatsApp or call',  body: 'Send a photo or your measurements. We quote, you confirm, we stitch.' },
               { n: '3', title: 'Reserve, pay in shop', body: 'Hold the cloth online and see it in daylight at Moti Bazaar before paying.' },
             ].map(way => (
-              <div key={way.n} style={{ display: 'flex', gap: 18, alignItems: 'start' }}>
+              <div key={way.n} className="flex items-start gap-4">
                 <div
                   aria-hidden="true"
-                  style={{
-                    flex: 'none', width: 58, height: 58, borderRadius: '50%',
-                    background: 'var(--color-accent)', color: 'var(--color-bg)',
-                    display: 'grid', placeItems: 'center',
-                    fontFamily: 'var(--font-heading)', fontSize: 24,
-                  }}
+                  className="grid h-[58px] w-[58px] flex-none place-items-center rounded-full
+                             bg-accent font-heading text-2xl text-bg"
                 >
                   {way.n}
                 </div>
                 <div>
-                  <h3 style={{ fontSize: 21, marginBottom: 5 }}>{way.title}</h3>
-                  <p style={{ margin: 0, fontSize: 14, color: 'var(--color-neutral-700)' }}>{way.body}</p>
+                  <h3 className="mb-1 text-[21px]">{way.title}</h3>
+                  <p className="m-0 text-sm text-neutral-700">{way.body}</p>
                 </div>
               </div>
             ))}
@@ -166,10 +164,10 @@ export function Home() {
 
 export function ShopFooter({ settings }: { settings?: { shopName: string; addressLine: string; city: string; openingHours?: string | null; whatsAppNumber: string } }) {
   return (
-    <footer className="page page-pad" style={{ padding: '44px 40px' }}>
-      <div className="grid-3" style={{ gap: 30, fontSize: 14, color: 'var(--color-neutral-700)' }}>
+    <footer className="page py-11">
+      <div className="grid grid-cols-1 gap-[30px] text-sm text-neutral-700 md:grid-cols-2 2xl:grid-cols-3">
         <div>
-          <div style={{ fontFamily: 'var(--font-heading)', fontSize: 21, color: 'var(--color-text)', marginBottom: 8 }}>
+          <div className="mb-2 font-heading text-[21px] text-text">
             {settings?.shopName ?? "Saad's Shop"}
           </div>
           <div>{settings?.addressLine ?? 'Shop 14, Moti Bazaar'}</div>
@@ -177,18 +175,18 @@ export function ShopFooter({ settings }: { settings?: { shopName: string; addres
         </div>
 
         <div>
-          <div style={{ fontWeight: 700, color: 'var(--color-text)', marginBottom: 8 }}>Open</div>
+          <div className="mb-2 font-bold text-text">Open</div>
           {(settings?.openingHours ?? 'Mon–Sat · 10am – 9pm · Friday break 1pm – 2:30pm')
             .split('·')
             .map((part, i) => <div key={i}>{part.trim()}</div>)}
         </div>
 
         <div>
-          <div style={{ fontWeight: 700, color: 'var(--color-text)', marginBottom: 8 }}>Order on WhatsApp</div>
-          <div style={{ fontSize: 21, fontFamily: 'var(--font-heading)', color: 'var(--color-text)' }}>
+          <div className="mb-2 font-bold text-text">Order on WhatsApp</div>
+          <div className="font-heading text-[21px] text-text">
             {settings?.whatsAppNumber ?? '0300 000 0000'}
           </div>
-          <div style={{ marginTop: 5 }}>Send a photo, get a quote.</div>
+          <div className="mt-1">Send a photo, get a quote.</div>
         </div>
       </div>
     </footer>

@@ -1,0 +1,104 @@
+/*  Organic — the design system, expressed as Tailwind's theme.
+    ------------------------------------------------------------------------
+    Lifted from the Claude Design handoff
+    (docs/design-handoff/project/_ds/organic-.../styles.css). This file is the
+    contract between the prototype and the built app: retune here, never in a
+    component.
+
+    Everything below is a Tailwind v4 `@theme` variable, so each token both
+    exists as a CSS custom property AND generates the matching utilities —
+    `--color-accent-600` gives `bg-accent-600`, `text-accent-600`,
+    `border-accent-600`, and so on. There is no second list of colours in a
+    config file to drift out of step with this one.                          */
+
+@theme {
+  /* ── what Tailwind ships that this design does not use ───────────────── */
+  /*  Cleared first, so the tokens below survive it. Without this
+      `bg-blue-500` silently works and the palette stops being the design's. */
+  --color-*:     initial;
+  --font-sans:   initial;
+  --font-serif:  initial;
+
+  /* ── the four brand colours ─────────────────────────────────────────── */
+  --color-bg:       #f5ead8;
+  --color-surface:  #ebddc5;
+  --color-text:     #201e1d;
+  --color-accent:   #c67139;
+  --color-accent-2: #7a8a5e;
+  --color-divider:  color-mix(in srgb, #201e1d 16%, transparent);
+
+  /*  Tonal ramps generated in OKLCH on one shared lightness scale, so step 500
+      of any role reads at the same visual weight as step 500 of another.
+      Tailwind's own palette is switched off below, so these are the only
+      colours the app can name.                                              */
+  --color-neutral-100: #f9f4ed;
+  --color-neutral-200: #eee7db;
+  --color-neutral-300: #dcd3c4;
+  --color-neutral-400: #c0b6a5;
+  --color-neutral-500: #a19786;
+  --color-neutral-600: #82796a;
+  --color-neutral-700: #645c50;
+  --color-neutral-800: #474238;
+  --color-neutral-900: #2e2b25;
+
+  --color-accent-100: #fff2eb;
+  --color-accent-200: #ffe1d0;
+  --color-accent-300: #ffc6a5;
+  --color-accent-400: #f6a06b;
+  --color-accent-500: #d67f48;
+  --color-accent-600: #b2622d;
+  --color-accent-700: #8c491a;
+  --color-accent-800: #643312;
+  --color-accent-900: #402310;
+
+  --color-accent-2-100: #f0fae1;
+  --color-accent-2-200: #e1eecc;
+  --color-accent-2-300: #ccdbb2;
+  --color-accent-2-400: #aebf92;
+  --color-accent-2-500: #8fa073;
+  --color-accent-2-600: #728157;
+  --color-accent-2-700: #56633f;
+  --color-accent-2-800: #3d472b;
+  --color-accent-2-900: #272e1b;
+
+  /* ── type ───────────────────────────────────────────────────────────── */
+  --font-heading: "Caprasimo", Georgia, serif;
+  --font-body:    "Figtree", system-ui, -apple-system, sans-serif;
+  --font-mono:    ui-monospace, "SF Mono", Menlo, monospace;
+
+  /*  The design's spacing scale is 4.4px per step — an unusual base, but it is
+      what every measurement in the handoff is built on. Setting it here means
+      `p-4` is the design's --space-4 exactly, rather than Tailwind's 16px
+      approximation of it.                                                   */
+  --spacing: 4.4px;
+
+  --radius-sm: 8px;
+  --radius-md: 16px;
+  --radius-lg: 28px;
+  /*  Cards in the design are one step softer again than --radius-lg.        */
+  --radius-card: 32px;
+
+  /*  Soft ink-tinted shadows, derived from the ground rather than pure black. */
+  --shadow-sm: 0 1px 2px   color-mix(in srgb, #2e2b25 14%, transparent);
+  --shadow-md: 0 3px 10px  color-mix(in srgb, #2e2b25 16%, transparent);
+  --shadow-lg: 0 12px 32px color-mix(in srgb, #2e2b25 22%, transparent);
+
+  /*  The storefront frames are 1280px in the design, the panel 1440px with a
+      258px sidebar. Canvas widths, not a responsive spec — the desktop target,
+      with everything reflowing below.                                       */
+  --container-storefront: 1280px;
+  --container-panel:      1440px;
+  --container-sidebar:    258px;
+
+  /*  Breakpoints are part of the design system here, not Tailwind's defaults:
+      each one is a point where a frame in the handoff actually has to change
+      shape, so `2xl:` means "wide enough for the hero's two columns" rather
+      than an arbitrary 1536px.                                              */
+  --breakpoint-xs:  421px;   /* recovery codes go to two columns   */
+  --breakpoint-sm:  561px;   /* stat tiles and card grids unstack  */
+  --breakpoint-md:  621px;   /* three- and four-up grids begin     */
+  --breakpoint-lg:  861px;   /* the panel sidebar stops being a drawer */
+  --breakpoint-xl:  901px;   /* full page gutters                  */
+  --breakpoint-2xl: 961px;   /* hero, product and cart split in two */
+  --breakpoint-3xl: 1101px;  /* the widest frames reach full width  */
+}

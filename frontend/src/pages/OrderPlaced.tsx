@@ -26,64 +26,49 @@ export function OrderPlaced() {
   if (!confirmation) return <Navigate to="/" replace />;
 
   return (
-    <main id="main" className="page page-pad" style={{ paddingBlock: '86px 64px', textAlign: 'center' }}>
-      <div
-        aria-hidden="true"
-        style={{
-          width: 92, height: 92, borderRadius: '50%',
-          background: 'var(--color-accent-2-500)', margin: '0 auto 24px',
-        }}
-      />
+    <main id="main" className="page pb-16 pt-[86px] text-center">
+      <div aria-hidden="true" className="mx-auto mb-6 h-[92px] w-[92px] rounded-full bg-accent-2-500" />
 
-      <h1 className="display-thanks" style={{ margin: '0 0 12px' }}>Shukriya!</h1>
+      <h1 className="display-thanks mb-3 mt-0">Shukriya!</h1>
 
-      <p style={{ fontSize: 19, color: 'var(--color-neutral-700)', margin: '0 0 6px' }}>
+      <p className="mb-1.5 mt-0 text-[19px] text-neutral-700">
         Order <strong>{confirmation.reference}</strong> is with the shop.
         {confirmation.lines.some(l => l.bedSize) && ' We will call to confirm your measurements.'}
       </p>
 
-      <p style={{ fontSize: 15, color: 'var(--color-neutral-600)', margin: '0 0 28px' }}>
+      <p className="mb-7 mt-0 text-[15px] text-neutral-600">
         {PAYMENT_LINE[confirmation.paymentMethod] ?? 'We will be in touch to confirm.'}
       </p>
 
       {/* A quiet receipt — enough to check against, not a full invoice. */}
-      <div
-        className="card"
-        style={{ maxWidth: 460, margin: '0 auto 28px', padding: 24, textAlign: 'left' }}
-      >
+      <div className="card mx-auto mb-7 max-w-[460px] p-6 text-left">
         {confirmation.lines.map(line => (
-          <div
-            key={line.orderLineId}
-            style={{
-              display: 'flex', justifyContent: 'space-between', gap: 12, fontSize: 14,
-              padding: '8px 0', borderBottom: '1px solid var(--color-divider)',
-            }}
-          >
+          <div key={line.orderLineId} className="flex justify-between gap-3 border-b border-divider py-2 text-sm">
             <span>
               {line.productName}
               {line.quantity > 1 && ` ×${line.quantity}`}
               {(line.swatchName || line.bedSize) && (
-                <span style={{ display: 'block', fontSize: 12, color: 'var(--color-neutral-600)' }}>
+                <span className="block text-xs text-neutral-600">
                   {[line.bedSize, line.swatchName].filter(Boolean).join(' · ')}
                 </span>
               )}
             </span>
-            <span style={{ fontWeight: 700, whiteSpace: 'nowrap' }}>{formatPkr(line.lineTotal)}</span>
+            <span className="whitespace-nowrap font-bold">{formatPkr(line.lineTotal)}</span>
           </div>
         ))}
 
-        <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: 14, padding: '10px 0 0' }}>
+        <div className="flex justify-between pt-2.5 text-sm">
           <span>Delivery</span>
           <span>{confirmation.deliveryCharge === 0 ? 'Free' : formatPkr(confirmation.deliveryCharge)}</span>
         </div>
 
-        <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'baseline', paddingTop: 10 }}>
-          <span style={{ fontSize: 13, color: 'var(--color-neutral-600)' }}>Total</span>
-          <span style={{ fontFamily: 'var(--font-heading)', fontSize: 26 }}>{formatPkr(confirmation.total)}</span>
+        <div className="flex items-baseline justify-between pt-2.5">
+          <span className="text-[13px] text-neutral-600">Total</span>
+          <span className="font-heading text-[26px]">{formatPkr(confirmation.total)}</span>
         </div>
       </div>
 
-      <p style={{ fontSize: 13, color: 'var(--color-neutral-600)', marginBottom: 24 }}>
+      <p className="mb-6 text-[13px] text-neutral-600">
         Keep the order number. You can check on it any time with that and your phone number
         {settings.data?.whatsAppNumber ? `, or message the shop on ${settings.data.whatsAppNumber}` : ''}.
       </p>

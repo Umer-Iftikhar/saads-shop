@@ -10,7 +10,7 @@ import type { ReactNode } from 'react';
 
 export function Loading({ label = 'Loading…' }: { label?: string }) {
   return (
-    <div role="status" aria-live="polite" style={{ padding: '64px 0', textAlign: 'center', color: 'var(--color-neutral-700)' }}>
+    <div role="status" aria-live="polite" className="py-16 text-center text-neutral-700">
       {label}
     </div>
   );
@@ -24,11 +24,9 @@ export function CardSkeleton({ count = 3, height = 300 }: { count?: number; heig
         <div
           key={i}
           aria-hidden="true"
-          style={{
-            height,
-            borderRadius: 'calc(var(--radius-lg) * 1.15)',
-            background: 'var(--color-neutral-200)',
-          }}
+          className="rounded-card bg-neutral-200"
+          // The only thing here the caller varies, and it varies per grid.
+          style={{ height }}
         />
       ))}
     </>
@@ -41,9 +39,9 @@ export function ErrorState({ title, detail, onRetry }: {
   onRetry?: () => void;
 }) {
   return (
-    <div role="alert" style={{ padding: '56px 0', textAlign: 'center' }}>
-      <h2 style={{ fontSize: 26, marginBottom: 8 }}>{title}</h2>
-      {detail && <p style={{ color: 'var(--color-neutral-700)', maxWidth: '48ch', margin: '0 auto 20px' }}>{detail}</p>}
+    <div role="alert" className="py-14 text-center">
+      <h2 className="mb-2 text-[26px]">{title}</h2>
+      {detail && <p className="mx-auto mb-5 max-w-[48ch] text-neutral-700">{detail}</p>}
       {onRetry && (
         <button type="button" className="btn btn-secondary" onClick={onRetry}>
           Try again
@@ -59,9 +57,9 @@ export function EmptyState({ title, detail, action }: {
   action?: ReactNode;
 }) {
   return (
-    <div style={{ padding: '56px 0', textAlign: 'center' }}>
-      <h2 style={{ fontSize: 26, marginBottom: 8 }}>{title}</h2>
-      {detail && <p style={{ color: 'var(--color-neutral-700)', maxWidth: '48ch', margin: '0 auto 20px' }}>{detail}</p>}
+    <div className="py-14 text-center">
+      <h2 className="mb-2 text-[26px]">{title}</h2>
+      {detail && <p className="mx-auto mb-5 max-w-[48ch] text-neutral-700">{detail}</p>}
       {action}
     </div>
   );
