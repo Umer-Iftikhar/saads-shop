@@ -144,11 +144,46 @@ code, `IsSuccess` read it back as success, and the controller answered 200 with
 an empty body. `OperationResult.FromProcedureFailure` now turns that case into a
 500 that says so, and every call site uses it.
 
+## Integration tests
+
+```bash
+dotnet test tests/SaadsShop.IntegrationTests    # 110 tests
+```
+
+The unit suite proves the C# reads a procedure's answer correctly. Nothing in
+it can prove the procedure gives the right answer, because there is no
+database — and in this project the rules live in the procedures. So this suite
+starts SQL Server in a container, applies the real files from `database/` in
+the order `apply.sh` uses, and calls the real repositories.
+
+| Area | What is asserted |
+| --- | --- |
+| Checkout concurrency | Eight buyers race for one piece and exactly one wins; twenty buyers against five pieces sell exactly five and stock never goes negative; a part-available order rolls back whole; six simultaneous orders from one phone make one customer, not six |
+| Refresh tokens | Rotation, reuse detection, and that a replay revokes the whole family while leaving other devices signed in — plus ten tabs refreshing at once never leaving two usable tokens |
+| Order lifecycle | References unique under concurrency, prices taken from the shop and not the browser, a line keeping the name and price it sold at after the product is renamed, status moves recorded with who made them, and tracking that needs the phone as well as the reference |
+| Catalogue | Slugs, name conflicts, cloth sets replaced wholesale rather than merged, and removal that hides rather than deletes |
+| The date range | The third layer of the rule the browser and `[DateRange]` also apply |
+| Deployment | The scripts apply to an empty server; every name in `StoredProcedures` exists; nothing in the database is uncalled; no procedure returns a code the API cannot map; no procedure catches an error without logging it |
+
+Docker is required. Set `SAADSSHOP_TEST_SQL` to a connection string to run
+against a server you already have instead, and no container is started.
+
+**Two defects came out of writing these**, both invisible without a database:
+
+1. **Refresh-token reuse could never be reported.** On the replay path
+   `usp_RefreshToken_Redeem` sets `@UserId = NULL` and then selects the reuse
+   flag `FROM dbo.Users WHERE Id = @UserId` — which returns *no row*. The flag
+   never reached the API, so the `LogWarning` in `AuthCommandService` that
+   exists precisely to record a stolen token was unreachable. The family was
+   still revoked correctly, so the hole was in the alerting, not the defence.
+2. **The date range was validated twice, not three times.** The procedure
+   checked only that the start was before the end. Nothing in it refused a
+   future date or a range longer than a year, though both READMEs and
+   `docs/database.md` describe three layers applying the same rules.
+
 ## Not covered here
 
-Repositories are exercised only as far as `RepositoryBase` — reading the status
-row, mapping multiple result sets, binding a table-valued parameter. What the
-procedures themselves do needs a database, and the concurrency and rotation
-checks in [`../database/README.md`](../database/README.md) were run by hand
-against real SQL Server rather than automated. That is the gap; it is not a
-Testcontainers suite pretending to be one.
+The API's HTTP surface. These tests call repositories, which is where SQL
+begins; routing, model binding and the auth middleware are covered by the unit
+suite instead. An end-to-end suite over `WebApplicationFactory` would close
+that gap and does not exist yet.

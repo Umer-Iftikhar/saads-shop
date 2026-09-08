@@ -27,7 +27,7 @@ Prices are in **PKR (Rs)**. The copy is English with Urdu accents (*bistar*, *pa
 | Auth | ASP.NET Identity + JWT + rotating refresh tokens + Google OAuth + TOTP 2FA | Staff only today, customer-ready schema |
 | Logging | Serilog (console + rolling file, request logging) | |
 | Caching | `IMemoryCache` with explicit invalidation on write | |
-| Tests | **xUnit** (backend) + **Vitest** and Testing Library (frontend) | 422 + 288, run with `dotnet test` and `npm test` |
+| Tests | **xUnit** unit + integration (Testcontainers MSSQL), **Vitest** on the frontend | 422 + 110 + 288; the integration suite runs the *real* stored procedures |
 
 ## Repository layout
 

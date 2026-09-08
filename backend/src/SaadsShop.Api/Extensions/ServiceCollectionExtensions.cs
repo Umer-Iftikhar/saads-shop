@@ -67,7 +67,8 @@ public static class ServiceCollectionExtensions
     {
         //  Before any repository runs: SqlClient refuses a DateOnly parameter,
         //  and the failure surfaces at the first query that carries a date.
-        SqlMapper.AddTypeHandler(new DateOnlyTypeHandler());
+        //  The integration tests call the same method, so the two cannot drift.
+        DapperTypeHandlers.Register();
 
         services.AddSingleton<ISqlConnectionFactory, SqlConnectionFactory>();
 
