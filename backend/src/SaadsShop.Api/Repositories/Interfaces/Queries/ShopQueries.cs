@@ -1,10 +1,10 @@
 using SaadsShop.Api.DTOs.Internal;
-using SaadsShop.Api.DTOs.Request;
 using SaadsShop.Api.Models;
 
-namespace SaadsShop.Api.Repositories.Interfaces;
+namespace SaadsShop.Api.Repositories.Interfaces.Queries;
 
-public interface IShopRepository
+/// <summary>Shop settings and the dashboard — read.</summary>
+public interface IShopQueryRepository
 {
     /// <summary>
     /// The storefront's view of settings. A separate procedure from
@@ -15,18 +15,6 @@ public interface IShopRepository
 
     Task<ProcedureResult<ShopSettings>> GetSettingsAsync(CancellationToken ct = default);
 
-    Task<ProcedureResult<bool>> UpdateSettingsAsync(
-        SettingsUpdateRequest request, string normalisedWhatsApp, string? actorUserId,
-        CancellationToken ct = default);
-
     Task<ProcedureResult<DashboardData>> GetDashboardAsync(
         DateOnly? asAt, CancellationToken ct = default);
-}
-
-public sealed class DashboardData
-{
-    public DashboardStats             Stats        { get; init; } = new();
-    public IReadOnlyList<SalesWeek>   SalesChart   { get; init; } = [];
-    public IReadOnlyList<BestSeller>  BestSellers  { get; init; } = [];
-    public IReadOnlyList<Order>       LatestOrders { get; init; } = [];
 }

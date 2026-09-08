@@ -12,10 +12,16 @@ using SaadsShop.Api.Configuration;
 using SaadsShop.Api.Constants;
 using SaadsShop.Api.Data;
 using SaadsShop.Api.Models;
-using SaadsShop.Api.Repositories.Implementations;
-using SaadsShop.Api.Repositories.Interfaces;
+using SaadsShop.Api.Repositories.Implementations.Commands;
+using SaadsShop.Api.Repositories.Implementations.Queries;
+using SaadsShop.Api.Repositories.Interfaces.Commands;
+using SaadsShop.Api.Repositories.Interfaces.Queries;
 using SaadsShop.Api.Services.Implementations;
+using SaadsShop.Api.Services.Implementations.Commands;
+using SaadsShop.Api.Services.Implementations.Queries;
 using SaadsShop.Api.Services.Interfaces;
+using SaadsShop.Api.Services.Interfaces.Commands;
+using SaadsShop.Api.Services.Interfaces.Queries;
 
 namespace SaadsShop.Api.Extensions;
 
@@ -59,19 +65,36 @@ public static class ServiceCollectionExtensions
 
         services.AddSingleton<ISqlConnectionFactory, SqlConnectionFactory>();
 
-        // Scoped: one instance per request, matching the lifetime of the
-        // connections and the cancellation token they run under.
-        services.AddScoped<ICatalogRepository,    CatalogRepository>();
-        services.AddScoped<IOrderRepository,      OrderRepository>();
-        services.AddScoped<IOperationsRepository, OperationsRepository>();
-        services.AddScoped<IShopRepository,       ShopRepository>();
-        services.AddScoped<IIdentityRepository,   IdentityRepository>();
+        //  Reads and writes are registered as separate pairs the whole way
+        //  down. A screen that only shows the catalogue asks for the query
+        //  service and is then incapable of changing it — which is a stronger
+        //  guarantee than a comment saying it should not.
+        //
+        //  Scoped: one instance per request, matching the lifetime of the
+        //  connections and the cancellation token they run under.
+        services.AddScoped<ICatalogQueryRepository,      CatalogQueryRepository>();
+        services.AddScoped<IOrderQueryRepository,        OrderQueryRepository>();
+        services.AddScoped<IOperationsQueryRepository,   OperationsQueryRepository>();
+        services.AddScoped<IShopQueryRepository,         ShopQueryRepository>();
+        services.AddScoped<IIdentityQueryRepository,     IdentityQueryRepository>();
 
-        services.AddScoped<ICatalogService,    CatalogService>();
-        services.AddScoped<IOrderService,      OrderService>();
-        services.AddScoped<IOperationsService, OperationsService>();
-        services.AddScoped<IShopService,       ShopService>();
-        services.AddScoped<IAuthService,       AuthService>();
+        services.AddScoped<ICatalogCommandRepository,    CatalogCommandRepository>();
+        services.AddScoped<IOrderCommandRepository,      OrderCommandRepository>();
+        services.AddScoped<IOperationsCommandRepository, OperationsCommandRepository>();
+        services.AddScoped<IShopCommandRepository,       ShopCommandRepository>();
+        services.AddScoped<IIdentityCommandRepository,   IdentityCommandRepository>();
+
+        services.AddScoped<ICatalogQueryService,      CatalogQueryService>();
+        services.AddScoped<IOrderQueryService,        OrderQueryService>();
+        services.AddScoped<IOperationsQueryService,   OperationsQueryService>();
+        services.AddScoped<IShopQueryService,         ShopQueryService>();
+        services.AddScoped<IAuthQueryService,         AuthQueryService>();
+
+        services.AddScoped<ICatalogCommandService,    CatalogCommandService>();
+        services.AddScoped<IOrderCommandService,      OrderCommandService>();
+        services.AddScoped<IOperationsCommandService, OperationsCommandService>();
+        services.AddScoped<IShopCommandService,       ShopCommandService>();
+        services.AddScoped<IAuthCommandService,       AuthCommandService>();
 
         // Stateless and cheap to share.
         services.AddSingleton<ITokenService,     TokenService>();

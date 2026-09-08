@@ -3,15 +3,24 @@ using SaadsShop.Api.DTOs.Internal;
 using SaadsShop.Api.DTOs.Request;
 using SaadsShop.Api.DTOs.Response;
 using SaadsShop.Api.Models;
-using SaadsShop.Api.Repositories.Interfaces;
+using SaadsShop.Api.Repositories.Interfaces.Queries;
 using SaadsShop.Api.Services.Interfaces;
+using SaadsShop.Api.Services.Interfaces.Queries;
 
-namespace SaadsShop.Api.Services.Implementations;
+namespace SaadsShop.Api.Services.Implementations.Queries;
 
-public sealed class CatalogService(
-    ICatalogRepository repository,
-    ICacheService cache,
-    ILogger<CatalogService> logger) : ICatalogService
+/// <summary>
+/// The read side of the catalogue — and the only side that caches.
+/// </summary>
+/// <remarks>
+/// Every entry here is keyed by the catalogue's version counter, which the
+/// command service bumps after a successful write. Nothing on this side has to
+/// know what invalidates what: a write happened, the version moved, and these
+/// keys stopped matching.
+/// </remarks>
+public sealed class CatalogQueryService(
+    ICatalogQueryRepository repository,
+    ICacheService cache) : ICatalogQueryService
 {
     public Task<OperationResult<IReadOnlyList<CategoryResponse>>> GetCategoriesAsync(CancellationToken ct = default)
         => CachedListAsync(
@@ -151,58 +160,9 @@ public sealed class CatalogService(
         return OperationResult<PagedResponse<ProductAdminResponse>>.Success(page);
     }
 
-    public async Task<OperationResult<int>> CreateProductAsync(
-        ProductEditorRequest request, string? actorUserId, CancellationToken ct = default)
-    {
-        var result = await repository.CreateProductAsync(request, actorUserId, ct);
-
-        if (!result.IsSuccess || result.Data is null)
-            return OperationResult<int>.Failure(result.ResponseCode, result.ResponseMessage);
-
-        InvalidateCatalog();
-        logger.LogInformation("Product {ProductId} created by {ActorUserId}", result.Data, actorUserId);
-
-        return OperationResult<int>.Success(result.Data.Value, result.ResponseMessage);
-    }
-
-    public async Task<OperationResult<bool>> UpdateProductAsync(
-        int productId, ProductEditorRequest request, string? actorUserId, CancellationToken ct = default)
-    {
-        var result = await repository.UpdateProductAsync(productId, request, actorUserId, ct);
-
-        if (!result.IsSuccess)
-            return OperationResult<bool>.Failure(result.ResponseCode, result.ResponseMessage);
-
-        InvalidateCatalog();
-        logger.LogInformation("Product {ProductId} updated by {ActorUserId}", productId, actorUserId);
-
-        return OperationResult<bool>.Success(true, result.ResponseMessage);
-    }
-
-    public async Task<OperationResult<bool>> DeleteProductAsync(
-        int productId, string? actorUserId, CancellationToken ct = default)
-    {
-        var result = await repository.DeleteProductAsync(productId, actorUserId, ct);
-
-        if (!result.IsSuccess)
-            return OperationResult<bool>.Failure(result.ResponseCode, result.ResponseMessage);
-
-        InvalidateCatalog();
-        logger.LogInformation("Product {ProductId} removed by {ActorUserId}", productId, actorUserId);
-
-        return OperationResult<bool>.Success(true, result.ResponseMessage);
-    }
-
     // ── helpers ──────────────────────────────────────────────────────────────
 
     private long CatalogVersion => cache.GetVersion(CacheKeys.CatalogVersion);
-
-    /// <summary>
-    /// Bumped only after a write has actually succeeded. Bumping first would
-    /// open a window where a concurrent read repopulates the new version with
-    /// pre-write data — the exact staleness the cache is supposed to prevent.
-    /// </summary>
-    private void InvalidateCatalog() => cache.BumpVersion(CacheKeys.CatalogVersion);
 
     private async Task<OperationResult<IReadOnlyList<TOut>>> CachedListAsync<TIn, TOut>(
         string key, TimeSpan lifetime,

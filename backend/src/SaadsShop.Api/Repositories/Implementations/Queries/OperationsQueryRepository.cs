@@ -5,11 +5,12 @@ using SaadsShop.Api.DTOs.Internal;
 using SaadsShop.Api.DTOs.Request;
 using SaadsShop.Api.Models;
 using SaadsShop.Api.Repositories.Interfaces;
+using SaadsShop.Api.Repositories.Interfaces.Queries;
 
-namespace SaadsShop.Api.Repositories.Implementations;
+namespace SaadsShop.Api.Repositories.Implementations.Queries;
 
-public sealed class OperationsRepository(ISqlConnectionFactory connectionFactory)
-    : RepositoryBase(connectionFactory), IOperationsRepository
+public sealed class OperationsQueryRepository(ISqlConnectionFactory connectionFactory)
+    : RepositoryBase(connectionFactory), IOperationsQueryRepository
 {
     public Task<ProcedureResult<InventorySnapshot>> GetInventoryAsync(
         InventorySearchQuery query, CancellationToken ct = default)
@@ -34,18 +35,6 @@ public sealed class OperationsRepository(ISqlConnectionFactory connectionFactory
             },
             ct);
 
-    public Task<ProcedureResult<(int ProductId, int Stock)>> AdjustStockAsync(
-        int productId, int delta, string reason, string? actorUserId, CancellationToken ct = default)
-        => ExecuteAsync(
-            StoredProcedures.ProductAdjustStock,
-            new { ProductId = productId, Delta = delta, Reason = reason, ActorUserId = actorUserId },
-            async grid =>
-            {
-                var row = await grid.ReadSingleOrDefaultAsync<StockRow>();
-                return (row?.ProductId ?? productId, row?.Stock ?? 0);
-            },
-            ct);
-
     public Task<ProcedureResult<IReadOnlyList<StitchingJob>>> GetStitchingQueueAsync(CancellationToken ct = default)
         => ExecuteAsync<IReadOnlyList<StitchingJob>>(
             StoredProcedures.StitchingQueueGet,
@@ -59,40 +48,6 @@ public sealed class OperationsRepository(ISqlConnectionFactory connectionFactory
                 // that follows would be mistaken for them.
                 _ = await grid.ReadAsync<StageCount>();
                 return jobs;
-            },
-            ct);
-
-    public Task<ProcedureResult<int?>> CreateStitchingJobAsync(
-        StitchingJobCreateRequest request, CancellationToken ct = default)
-        => ExecuteAsync<int?>(
-            StoredProcedures.StitchingJobCreate,
-            new
-            {
-                request.OrderId,
-                request.Title,
-                request.AssignedTo,
-                request.SwatchId,
-                request.DueDate,
-                request.OrderLineId
-            },
-            async grid =>
-            {
-                var created = await grid.ReadSingleOrDefaultAsync<CreatedJob>();
-                return created?.StitchingJobId;
-            },
-            ct);
-
-    public Task<ProcedureResult<bool>> UpdateStitchingJobAsync(
-        int jobId, StitchingJobUpdateRequest request, CancellationToken ct = default)
-        => ExecuteAsync(
-            StoredProcedures.StitchingJobUpdate,
-            new
-            {
-                StitchingJobId = jobId,
-                request.Stage,
-                request.AssignedTo,
-                request.DueDate,
-                request.ClearDueDate
             },
             ct);
 
@@ -120,20 +75,9 @@ public sealed class OperationsRepository(ISqlConnectionFactory connectionFactory
         public int LowStockCount { get; set; }
     }
 
-    private sealed class StockRow
-    {
-        public int ProductId { get; set; }
-        public int Stock     { get; set; }
-    }
-
     private sealed class StageCount
     {
         public string Stage    { get; set; } = string.Empty;
         public int    JobCount { get; set; }
-    }
-
-    private sealed class CreatedJob
-    {
-        public int? StitchingJobId { get; set; }
     }
 }

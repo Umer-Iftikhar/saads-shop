@@ -2,14 +2,14 @@ using Dapper;
 using SaadsShop.Api.Constants;
 using SaadsShop.Api.Data;
 using SaadsShop.Api.DTOs.Internal;
-using SaadsShop.Api.DTOs.Request;
 using SaadsShop.Api.Models;
 using SaadsShop.Api.Repositories.Interfaces;
+using SaadsShop.Api.Repositories.Interfaces.Queries;
 
-namespace SaadsShop.Api.Repositories.Implementations;
+namespace SaadsShop.Api.Repositories.Implementations.Queries;
 
-public sealed class ShopRepository(ISqlConnectionFactory connectionFactory)
-    : RepositoryBase(connectionFactory), IShopRepository
+public sealed class ShopQueryRepository(ISqlConnectionFactory connectionFactory)
+    : RepositoryBase(connectionFactory), IShopQueryRepository
 {
     public Task<ProcedureResult<ShopSettings>> GetPublicSettingsAsync(CancellationToken ct = default)
         => ExecuteAsync<ShopSettings>(
@@ -23,29 +23,6 @@ public sealed class ShopRepository(ISqlConnectionFactory connectionFactory)
             StoredProcedures.SettingsGet,
             parameters: null,
             async grid => (await grid.ReadSingleOrDefaultAsync<ShopSettings>())!,
-            ct);
-
-    public Task<ProcedureResult<bool>> UpdateSettingsAsync(
-        SettingsUpdateRequest request, string normalisedWhatsApp, string? actorUserId,
-        CancellationToken ct = default)
-        => ExecuteAsync(
-            StoredProcedures.SettingsUpdate,
-            new
-            {
-                request.ShopName,
-                request.City,
-                request.AddressLine,
-                WhatsAppNumber = normalisedWhatsApp,
-                request.BannerText,
-                request.OpeningHours,
-                request.DeliveryCharge,
-                request.FreeDeliveryThreshold,
-                request.CashOnDeliveryEnabled,
-                request.WhatsAppOrdersEnabled,
-                request.ReserveInShopEnabled,
-                request.CardPaymentEnabled,
-                ActorUserId = actorUserId
-            },
             ct);
 
     public Task<ProcedureResult<DashboardData>> GetDashboardAsync(

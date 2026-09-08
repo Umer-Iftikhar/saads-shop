@@ -5,39 +5,13 @@ using SaadsShop.Api.DTOs.Internal;
 using SaadsShop.Api.DTOs.Request;
 using SaadsShop.Api.Models;
 using SaadsShop.Api.Repositories.Interfaces;
+using SaadsShop.Api.Repositories.Interfaces.Queries;
 
-namespace SaadsShop.Api.Repositories.Implementations;
+namespace SaadsShop.Api.Repositories.Implementations.Queries;
 
-public sealed class OrderRepository(ISqlConnectionFactory connectionFactory)
-    : RepositoryBase(connectionFactory), IOrderRepository
+public sealed class OrderQueryRepository(ISqlConnectionFactory connectionFactory)
+    : RepositoryBase(connectionFactory), IOrderQueryRepository
 {
-    public Task<ProcedureResult<OrderWithLines>> CreateAsync(
-        PlaceOrderRequest request, string normalisedPhone, CancellationToken ct = default)
-    {
-        var lines = BuildOrderLinesTable(
-            request.Lines.Select(l => (l.ProductId, l.Quantity, l.SwatchId, l.BedSize)));
-
-        return ExecuteAsync(
-            StoredProcedures.OrderCreate,
-            WithTableParameter(
-                new
-                {
-                    request.CustomerName,
-                    Phone = normalisedPhone,
-                    request.DeliveryAddress,
-                    request.Area,
-                    request.PaymentMethod,
-                    request.Notes
-                },
-                "Lines", lines, TableTypes.OrderLine),
-            async grid => new OrderWithLines
-            {
-                Order = await grid.ReadSingleOrDefaultAsync<Order>(),
-                Lines = (await grid.ReadAsync<OrderLine>()).AsList()
-            },
-            ct);
-    }
-
     public Task<ProcedureResult<OrderWithLines>> GetByReferenceAsync(
         string reference, string normalisedPhone, CancellationToken ct = default)
         => ExecuteAsync(
@@ -58,7 +32,8 @@ public sealed class OrderRepository(ISqlConnectionFactory connectionFactory)
             {
                 Status   = string.IsNullOrWhiteSpace(query.Status) ? null : query.Status,
                 Search   = string.IsNullOrWhiteSpace(query.Search) ? null : query.Search,
-                // DateOnly maps cleanly to SQL Server's DATE; converting to
+                // DateOnly stays a date all the way to SQL Server's DATE
+                // parameter — see Data/DateOnlyTypeHandler. Converting to
                 // DateTime here would reintroduce a time component and make the
                 // inclusive end-of-day handling in the procedure wrong.
                 FromDate = query.FromDate,
@@ -84,30 +59,6 @@ public sealed class OrderRepository(ISqlConnectionFactory connectionFactory)
                 Lines        = (await grid.ReadAsync<OrderLine>()).AsList(),
                 Measurements = (await grid.ReadAsync<OrderMeasurement>()).AsList(),
                 History      = (await grid.ReadAsync<OrderStatusChange>()).AsList()
-            },
-            ct);
-
-    public Task<ProcedureResult<bool>> UpdateStatusAsync(
-        int orderId, string newStatus, string? note, string? actorUserId, CancellationToken ct = default)
-        => ExecuteAsync(
-            StoredProcedures.OrderUpdateStatus,
-            new { OrderId = orderId, NewStatus = newStatus, Note = note, ActorUserId = actorUserId },
-            ct);
-
-    public Task<ProcedureResult<bool>> SaveMeasurementsAsync(
-        int orderId, SaveMeasurementsRequest request, string? actorUserId, CancellationToken ct = default)
-        => ExecuteAsync(
-            StoredProcedures.OrderSaveMeasurements,
-            new
-            {
-                OrderId = orderId,
-                request.BedWidthIn,
-                request.BedLengthIn,
-                request.WindowDropIn,
-                request.WindowCount,
-                request.Notes,
-                request.TakenBy,
-                ActorUserId = actorUserId
             },
             ct);
 

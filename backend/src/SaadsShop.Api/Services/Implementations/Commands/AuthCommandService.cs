@@ -9,19 +9,33 @@ using SaadsShop.Api.DTOs.Request;
 using SaadsShop.Api.DTOs.Response;
 using SaadsShop.Api.Models;
 using SaadsShop.Api.Repositories.Interfaces;
+using SaadsShop.Api.Repositories.Interfaces.Commands;
+using SaadsShop.Api.Repositories.Interfaces.Queries;
 using SaadsShop.Api.Services.Interfaces;
+using SaadsShop.Api.Services.Interfaces.Commands;
 
-namespace SaadsShop.Api.Services.Implementations;
+namespace SaadsShop.Api.Services.Implementations.Commands;
 
-public sealed class AuthService(
-    IIdentityRepository repository,
+/// <summary>
+/// Everything about signing in that changes state — which is nearly all of it.
+/// </summary>
+/// <remarks>
+/// This is the clearest case in the codebase for commands reading: signing in
+/// has to find the account before it can decide anything, so the query
+/// repository is here alongside the command one. The rule is one-directional —
+/// a command may read, a query may never write — and it is what keeps the read
+/// side safe to cache.
+/// </remarks>
+public sealed class AuthCommandService(
+    IIdentityQueryRepository reader,
+    IIdentityCommandRepository writer,
     ITokenService tokens,
     ITwoFactorService twoFactor,
     IPasswordHasher<AppUser> passwordHasher,
     IDataProtectionProvider dataProtection,
     IOptions<JwtOptions> jwtOptions,
     IOptions<AuthOptions> authOptions,
-    ILogger<AuthService> logger) : IAuthService
+    ILogger<AuthCommandService> logger) : IAuthCommandService
 {
     private readonly JwtOptions  _jwt  = jwtOptions.Value;
     private readonly AuthOptions _auth = authOptions.Value;
@@ -38,7 +52,7 @@ public sealed class AuthService(
         LoginRequest request, string? ip, CancellationToken ct = default)
     {
         var normalisedEmail = request.Email.Trim().ToUpperInvariant();
-        var found = await repository.FindUserAsync(normalizedEmail: normalisedEmail, ct: ct);
+        var found = await reader.FindUserAsync(normalizedEmail: normalisedEmail, ct: ct);
         var user  = found.Data;
 
         // Every failure below returns the same message. Distinguishing "no such
@@ -74,7 +88,7 @@ public sealed class AuthService(
         {
             // Identity raised its work factor since this hash was written.
             // Upgrade it now, while the plaintext is legitimately in hand.
-            await repository.UpdateUserAsync(new UserUpdate
+            await writer.UpdateUserAsync(new UserUpdate
             {
                 Id           = user.Id,
                 PasswordHash = passwordHasher.HashPassword(user, request.Password)
@@ -82,7 +96,7 @@ public sealed class AuthService(
         }
 
         if (user.AccessFailedCount > 0)
-            await repository.UpdateUserAsync(
+            await writer.UpdateUserAsync(
                 new UserUpdate { Id = user.Id, AccessFailedCount = 0, ClearLockout = true }, ct);
 
         var (mfaToken, _) = tokens.CreateTwoFactorChallengeToken(user);
@@ -108,7 +122,7 @@ public sealed class AuthService(
             return OperationResult<SessionIssued>.Failure(
                 ResponseCodes.Unauthorised, "That sign-in attempt has expired. Please sign in again.");
 
-        var found = await repository.FindUserAsync(userId: userId, ct: ct);
+        var found = await reader.FindUserAsync(userId: userId, ct: ct);
         var user  = found.Data;
 
         if (user is null || !user.IsActive)
@@ -120,7 +134,7 @@ public sealed class AuthService(
         if (request.IsRecoveryCode)
         {
             var hash   = twoFactor.HashRecoveryCode(request.Code);
-            var result = await repository.RedeemRecoveryCodeAsync(user.Id, hash, ct);
+            var result = await writer.RedeemRecoveryCodeAsync(user.Id, hash, ct);
 
             if (!result.IsSuccess)
             {
@@ -155,7 +169,7 @@ public sealed class AuthService(
         }
 
         if (user.AccessFailedCount > 0)
-            await repository.UpdateUserAsync(
+            await writer.UpdateUserAsync(
                 new UserUpdate { Id = user.Id, AccessFailedCount = 0, ClearLockout = true }, ct);
 
         logger.LogInformation("Sign-in complete for {UserId} from {Ip}", user.Id, ip);
@@ -174,7 +188,7 @@ public sealed class AuthService(
 
         // Rotation and reuse detection happen inside the procedure, under a row
         // lock, so two refreshes racing on the same token cannot both win.
-        var result = await repository.RedeemRefreshTokenAsync(presented, newHash, expiresAt, ip, ct);
+        var result = await writer.RedeemRefreshTokenAsync(presented, newHash, expiresAt, ip, ct);
 
         if (result.Data?.ReuseDetected == true)
         {
@@ -228,7 +242,7 @@ public sealed class AuthService(
         // device does not leave a rotated sibling alive.
         var hash = string.IsNullOrWhiteSpace(refreshToken) ? null : tokens.HashRefreshToken(refreshToken);
 
-        await repository.RevokeRefreshTokensAsync(
+        await writer.RevokeRefreshTokensAsync(
             hash, hash is null ? userId : null, null, "Signed out", ct);
 
         logger.LogInformation("User {UserId} signed out", userId);
@@ -252,7 +266,7 @@ public sealed class AuthService(
         }
 
         var normalisedEmail = email.Trim().ToUpperInvariant();
-        var found = await repository.FindUserAsync(normalizedEmail: normalisedEmail, ct: ct);
+        var found = await reader.FindUserAsync(normalizedEmail: normalisedEmail, ct: ct);
         var user  = found.Data;
 
         // No auto-provisioning, on purpose. If a first-time external sign-in
@@ -266,7 +280,7 @@ public sealed class AuthService(
                 "That Google account is not linked to a shop account. Ask the owner to add you first.");
         }
 
-        await repository.AddExternalLoginAsync(user.Id, provider, providerKey, displayName, ct);
+        await writer.AddExternalLoginAsync(user.Id, provider, providerKey, displayName, ct);
 
         var (mfaToken, _) = tokens.CreateTwoFactorChallengeToken(user);
 
@@ -284,31 +298,10 @@ public sealed class AuthService(
 
     // ── enrolment and accounts ───────────────────────────────────────────────
 
-    public async Task<OperationResult<CurrentUserResponse>> GetCurrentUserAsync(
-        string userId, CancellationToken ct = default)
-    {
-        var found = await repository.FindUserAsync(userId: userId, ct: ct);
-
-        if (found.Data is null)
-            return OperationResult<CurrentUserResponse>.Failure(ResponseCodes.NotFound, "Account not found.");
-
-        var u = found.Data;
-
-        return OperationResult<CurrentUserResponse>.Success(new CurrentUserResponse
-        {
-            UserId           = u.Id,
-            Email            = u.Email,
-            FullName         = u.FullName,
-            PhoneNumber      = u.PhoneNumber,
-            TwoFactorEnabled = u.TwoFactorEnabled,
-            Roles            = u.Roles
-        });
-    }
-
     public async Task<OperationResult<TwoFactorSetupResponse>> BeginTwoFactorEnrolmentAsync(
         string userId, CancellationToken ct = default)
     {
-        var found = await repository.FindUserAsync(userId: userId, ct: ct);
+        var found = await reader.FindUserAsync(userId: userId, ct: ct);
 
         if (found.Data is null)
             return OperationResult<TwoFactorSetupResponse>.Failure(ResponseCodes.NotFound, "Account not found.");
@@ -318,7 +311,7 @@ public sealed class AuthService(
         // Stored encrypted, and returned in the clear exactly once — there is
         // no endpoint that reads it back, because one would turn a hijacked
         // session into a permanent bypass of the second factor.
-        await repository.SetTokenAsync(
+        await writer.SetTokenAsync(
             userId, TokenStore.Provider, TokenStore.AuthenticatorKey, _protector.Protect(secret), ct);
 
         return OperationResult<TwoFactorSetupResponse>.Success(new TwoFactorSetupResponse
@@ -341,7 +334,7 @@ public sealed class AuthService(
             return OperationResult<RecoveryCodesResponse>.Failure(
                 ResponseCodes.Unauthorised, "That code is not valid. Check the time on your phone and try again.");
 
-        await repository.UpdateUserAsync(new UserUpdate { Id = userId, TwoFactorEnabled = true }, ct);
+        await writer.UpdateUserAsync(new UserUpdate { Id = userId, TwoFactorEnabled = true }, ct);
 
         var codes = twoFactor.GenerateRecoveryCodes();
 
@@ -350,7 +343,7 @@ public sealed class AuthService(
         var first = true;
         foreach (var code in codes)
         {
-            await repository.AddRecoveryCodeAsync(userId, twoFactor.HashRecoveryCode(code), first, ct);
+            await writer.AddRecoveryCodeAsync(userId, twoFactor.HashRecoveryCode(code), first, ct);
             first = false;
         }
 
@@ -359,34 +352,6 @@ public sealed class AuthService(
         return OperationResult<RecoveryCodesResponse>.Success(
             new RecoveryCodesResponse { RecoveryCodes = codes },
             "Two-factor is on. Save these recovery codes — they are shown once.");
-    }
-
-    public async Task<OperationResult<IReadOnlyList<StaffAccountResponse>>> GetStaffAsync(CancellationToken ct = default)
-    {
-        var result = await repository.GetStaffAsync(ct);
-
-        if (!result.IsSuccess || result.Data is null)
-            return OperationResult<IReadOnlyList<StaffAccountResponse>>
-                .Failure(result.ResponseCode, result.ResponseMessage);
-
-        var now = DateTimeOffset.UtcNow;
-
-        return OperationResult<IReadOnlyList<StaffAccountResponse>>.Success(
-            result.Data.Select(s => new StaffAccountResponse
-            {
-                Id                 = s.Id,
-                FullName           = s.FullName,
-                Email              = s.Email,
-                PhoneNumber        = s.PhoneNumber,
-                TwoFactorEnabled   = s.TwoFactorEnabled,
-                IsActive           = s.IsActive,
-                IsLockedOut        = s.LockoutEnd is { } end && end > now,
-                CreatedAt          = s.CreatedAt,
-                Roles              = string.IsNullOrWhiteSpace(s.Roles)
-                                        ? []
-                                        : s.Roles.Split(", ", StringSplitOptions.RemoveEmptyEntries),
-                ExternalLoginCount = s.ExternalLoginCount
-            }).ToList());
     }
 
     public async Task<OperationResult<string>> CreateStaffAsync(
@@ -420,7 +385,7 @@ public sealed class AuthService(
 
         user.PasswordHash = passwordHasher.HashPassword(user, request.Password);
 
-        var result = await repository.CreateUserAsync(user, request.Role, ct);
+        var result = await writer.CreateUserAsync(user, request.Role, ct);
 
         if (!result.IsSuccess)
             return OperationResult<string>.Failure(result.ResponseCode, result.ResponseMessage);
@@ -432,7 +397,7 @@ public sealed class AuthService(
 
     public async Task<OperationResult<bool>> SetRoleAsync(SetRoleRequest request, CancellationToken ct = default)
     {
-        var result = await repository.SetRoleAsync(request.UserId, request.Role, request.Attach, ct);
+        var result = await writer.SetRoleAsync(request.UserId, request.Role, request.Attach, ct);
 
         return result.IsSuccess
             ? OperationResult<bool>.Success(true, result.ResponseMessage)
@@ -452,7 +417,7 @@ public sealed class AuthService(
         => OperationResult<LoginChallengeResponse>.Failure(
             ResponseCodes.Unauthorised, "That email and password do not match.");
 
-    private bool IsLockedOut(AppUser user)
+    private static bool IsLockedOut(AppUser user)
         => user.LockoutEnabled && user.LockoutEnd is { } end && end > DateTimeOffset.UtcNow;
 
     private async Task RecordFailedAttemptAsync(AppUser user, string? ip, CancellationToken ct)
@@ -468,7 +433,7 @@ public sealed class AuthService(
                 user.Id, lockoutEnd, failures, ip);
         }
 
-        await repository.UpdateUserAsync(new UserUpdate
+        await writer.UpdateUserAsync(new UserUpdate
         {
             Id                = user.Id,
             AccessFailedCount = failures,
@@ -478,7 +443,7 @@ public sealed class AuthService(
 
     private async Task<string?> GetTotpSecretAsync(string userId, CancellationToken ct)
     {
-        var stored = await repository.GetTokenAsync(
+        var stored = await reader.GetTokenAsync(
             userId, TokenStore.Provider, TokenStore.AuthenticatorKey, ct);
 
         if (string.IsNullOrWhiteSpace(stored.Data)) return null;
@@ -504,7 +469,7 @@ public sealed class AuthService(
         var (refreshToken, refreshHash)  = tokens.CreateRefreshToken();
         var refreshExpires = DateTime.UtcNow.AddDays(_jwt.RefreshTokenDays);
 
-        var stored = await repository.CreateRefreshTokenAsync(
+        var stored = await writer.CreateRefreshTokenAsync(
             user.Id, refreshHash, familyId, refreshExpires, ip, ct);
 
         if (!stored.IsSuccess)

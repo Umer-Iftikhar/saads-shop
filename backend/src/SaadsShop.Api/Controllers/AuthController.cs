@@ -7,13 +7,15 @@ using Microsoft.Extensions.Options;
 using SaadsShop.Api.Configuration;
 using SaadsShop.Api.Constants;
 using SaadsShop.Api.DTOs.Request;
-using SaadsShop.Api.Services.Interfaces;
+using SaadsShop.Api.Services.Interfaces.Commands;
+using SaadsShop.Api.Services.Interfaces.Queries;
 
 namespace SaadsShop.Api.Controllers;
 
 [Route("api/auth")]
 public sealed class AuthController(
-    IAuthService auth,
+    IAuthQueryService reads,
+    IAuthCommandService auth,
     IOptions<AuthOptions> authOptions,
     IOptions<GoogleAuthOptions> googleOptions,
     ILogger<AuthController> logger) : ApiControllerBase
@@ -85,7 +87,7 @@ public sealed class AuthController(
     [HttpGet("me")]
     [Authorize(Policy = AuthPolicies.StaffOnly)]
     public async Task<IActionResult> Me(CancellationToken ct)
-        => FromResult(await auth.GetCurrentUserAsync(CurrentUserId!, ct));
+        => FromResult(await reads.GetCurrentUserAsync(CurrentUserId!, ct));
 
     // ── two-factor enrolment ─────────────────────────────────────────────────
 
@@ -169,7 +171,7 @@ public sealed class AuthController(
     [HttpGet("staff")]
     [Authorize(Policy = AuthPolicies.OwnerOnly)]
     public async Task<IActionResult> GetStaff(CancellationToken ct)
-        => FromResult(await auth.GetStaffAsync(ct));
+        => FromResult(await reads.GetStaffAsync(ct));
 
     [HttpPost("staff")]
     [Authorize(Policy = AuthPolicies.OwnerOnly)]

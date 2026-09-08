@@ -3,9 +3,11 @@
 ASP.NET Core 10 Web API. Dapper over stored procedures, JWT with rotating
 refresh tokens, TOTP two-factor, Google OAuth, Serilog, `IMemoryCache`.
 
-Layer boundaries and the reasoning behind them are in
-[`../docs/architecture.md`](../docs/architecture.md); the database contract is in
-[`../docs/database.md`](../docs/database.md).
+Reads and writes are separate interfaces at every layer — the storefront's
+catalogue controller holds a type with no method that can change a product. Layer
+boundaries and the reasoning behind them, including why this is not MediatR, are
+in [`../docs/architecture.md`](../docs/architecture.md); the database contract is
+in [`../docs/database.md`](../docs/database.md).
 
 ## Running it
 
@@ -37,8 +39,8 @@ on password + 2FA, with `/api/auth/google` answering 404.
 ```
 Controllers/    thin — bind, authorise, call a service, map the result
 DTOs/           Request / Response / Internal
-Services/       Interfaces + Implementations — business rules, caching
-Repositories/   Interfaces + Implementations — one procedure per method
+Services/       Interfaces + Implementations, each split Queries / Commands
+Repositories/   Interfaces + Implementations, each split Queries / Commands
 Models/         POCOs Dapper materialises
 Constants/      procedure names, table types, cache keys, roles, policies
 Validation/     custom validation attributes
