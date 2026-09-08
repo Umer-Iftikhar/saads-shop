@@ -29,7 +29,7 @@ public sealed class OperationsQueryService(IOperationsQueryRepository repository
         var result = await repository.GetInventoryAsync(query, ct);
 
         if (!result.IsSuccess || result.Data is null)
-            return OperationResult<InventoryResponse>.Failure(result.ResponseCode, result.ResponseMessage);
+            return OperationResult<InventoryResponse>.FromProcedureFailure(result);
 
         return OperationResult<InventoryResponse>.Success(new InventoryResponse
         {
@@ -56,7 +56,7 @@ public sealed class OperationsQueryService(IOperationsQueryRepository repository
         var result = await repository.GetStitchingQueueAsync(ct);
 
         if (!result.IsSuccess || result.Data is null)
-            return OperationResult<StitchingBoardResponse>.Failure(result.ResponseCode, result.ResponseMessage);
+            return OperationResult<StitchingBoardResponse>.FromProcedureFailure(result);
 
         var byStage = result.Data
             .GroupBy(j => j.Stage, StringComparer.Ordinal)
@@ -96,8 +96,7 @@ public sealed class OperationsQueryService(IOperationsQueryRepository repository
         var result = await repository.SearchCustomersAsync(query, ct);
 
         if (!result.IsSuccess || result.Data.Customers is null)
-            return OperationResult<PagedResponse<CustomerResponse>>
-                .Failure(result.ResponseCode, result.ResponseMessage);
+            return OperationResult<PagedResponse<CustomerResponse>>.FromProcedureFailure(result);
 
         var customers = result.Data.Customers.AsEnumerable();
 

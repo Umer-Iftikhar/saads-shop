@@ -24,7 +24,9 @@ local development work.
 | `npm run build` | Production bundle |
 | `npm run typecheck` | `tsc -b` |
 | `npm run lint` | oxlint |
-| `npm run check` | all three |
+| `npm test` | Vitest, once |
+| `npm run test:watch` | Vitest, watching |
+| `npm run check` | typecheck, lint, test, build |
 
 The storefront is at `/`; the staff panel is at `/shop-panel`. The first Owner
 comes from [`../database/seed/04_owner.sql`](../database/seed/04_owner.sql) —
@@ -150,6 +152,36 @@ sign-in attempt has expired". See [`../backend/README.md`](../backend/README.md)
 The web fonts are fetched from Google Fonts, which this build container cannot
 reach; the headings therefore fell back to Georgia during verification. The font
 stack itself is unchanged and loads normally on a machine with network access.
+
+## Tests
+
+```bash
+npm test                          # 288 tests, ~7s
+npm test -- src/state/cart        # one file
+```
+
+Vitest with Testing Library and jsdom. Nine files, and they are queried the way
+a customer meets the page — by role, label and accessible name — so a test fails
+when the shop breaks, not when a class name changes.
+
+| File | What is asserted |
+| --- | --- |
+| `lib/validation.test.ts` | Every rule the panel and the checkout apply, including the date range the server's `[DateRange]` checks again |
+| `lib/format.test.ts` | Rupees, dates, phone grouping, `wa.me` links, and the drawn cloth |
+| `lib/api.test.ts` | The base URL, the bearer header, when cookies travel, problem+json into `ApiError`, and that a network failure says something a shopper can act on |
+| `state/cart.test.tsx` | Merging by product + cloth + size, the quantity and line caps, what is sent to the server (no prices), and surviving hand-edited `localStorage` |
+| `state/auth.test.tsx` | Recovering a session on load, and the shared in-flight promise that stops two refreshes racing |
+| `components/components.test.tsx` | `Field`'s label/error wiring, the feedback states' live regions, and the swatch group's arrow-key navigation |
+| `components/navigation.test.tsx` | The panel gate, Settings hidden from staff, and the cart's spoken count |
+| `pages/admin/Orders.test.tsx` | The date filter — every refusal asserts that nothing was sent, not merely that a message appeared |
+| `pages/admin/SignIn.test.tsx` | Both steps: the password buys a challenge token and never a session, an unenrolled account is sent to setup, and a mistyped code does not cost the challenge |
+
+Two assertions are deliberately loose. Dates are matched by shape rather than by
+exact string, because the month abbreviation comes from the platform's ICU data
+("Sep" in a browser, "Sept" in Node) and pinning one spelling would fail on the
+other with nothing actually wrong. And `validateDateRange` reports *both*
+future-date errors where the server reports one — a deliberate difference,
+noted where it is tested, since being stricter on the client is safe.
 
 ## Not here yet
 
