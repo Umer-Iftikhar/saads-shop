@@ -74,9 +74,10 @@ lost — the moment either party rotates again, the other's copy is a spent toke
 family burns. Twenty seconds is chosen to cover a round trip on a slow connection and
 nothing more.
 
-It is process memory, so two API instances behind a load balancer each keep their own and a
-race split across both still falls through to the database — safe, just a re-login. Making
-it multi-instance means a shared cache; the static field in `AuthCommandService` is the seam.
+It lives and dies with the process. A restart in the middle of a race drops the window and
+the second caller falls through to the database — safe, just a re-login. That is the whole
+failure mode: the API is one process serving one shop, and the window is deliberately
+smaller than the problem it would take to need anything more.
 
 Measured against the running API, eight refreshes fired at once on one token:
 

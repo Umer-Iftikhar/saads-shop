@@ -198,10 +198,9 @@ public sealed class AuthCommandService(
     /// the second awaits the first's.
     ///
     /// Static because the service is scoped: a per-request instance would
-    /// remember nothing. It is process memory, so a second API instance behind
-    /// a load balancer has its own copy and a race split across the two still
-    /// falls through to the database — safe, just a re-login. Making that
-    /// multi-instance means a shared cache, and this field is the seam.
+    /// remember nothing. It lives and dies with the process, so a restart
+    /// mid-race drops the window and the second caller falls through to the
+    /// database — safe, just a re-login.
     /// </remarks>
     private static readonly ConcurrentDictionary<string, RecentRotation> RecentRotations = new(StringComparer.Ordinal);
 
