@@ -568,13 +568,20 @@ BEGIN
 
     SELECT  OrderMeasurementId, BedWidthIn, BedLengthIn, WindowDropIn, WindowCount,
             Notes, TakenBy, TakenAt
-    FROM    dbo.OrderMeasurements WHERE OrderId = @FoundId ORDER BY TakenAt DESC;
+    FROM    dbo.OrderMeasurements WHERE OrderId = @FoundId
+    /*  The id breaks the tie. TakenAt is DATETIME2(3), so two readings saved
+        in the same millisecond — a tailor correcting a typo, or any machine
+        fast enough — sort arbitrarily without it, and "the newest measurement"
+        stops meaning anything.                                             */
+    ORDER BY TakenAt DESC, OrderMeasurementId DESC;
 
     SELECT  h.FromStatus, h.ToStatus, h.Note, h.ChangedAt, u.FullName AS ChangedBy
     FROM    dbo.OrderStatusHistory AS h
     LEFT JOIN dbo.Users AS u ON u.Id = h.ChangedByUserId
     WHERE   h.OrderId = @FoundId
-    ORDER BY h.ChangedAt DESC;
+    /*  Same tie-break, same reason: two status moves can share a millisecond,
+        and the timeline would then show them in either order.              */
+    ORDER BY h.ChangedAt DESC, h.OrderStatusHistoryId DESC;
 
     SELECT @ResponseCode AS ResponseCode, @ResponseMessage AS ResponseMessage;
 END
