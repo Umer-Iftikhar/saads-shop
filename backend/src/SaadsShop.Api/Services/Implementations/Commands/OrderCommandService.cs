@@ -53,8 +53,7 @@ public sealed class OrderCommandService(
                 "Checkout refused ({ResponseCode}): {ResponseMessage}",
                 result.ResponseCode, result.ResponseMessage);
 
-            return OperationResult<OrderConfirmationResponse>
-                .Failure(result.ResponseCode, result.ResponseMessage);
+            return OperationResult<OrderConfirmationResponse>.FromProcedureFailure(result);
         }
 
         var order = result.Data.Order;

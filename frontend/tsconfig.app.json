@@ -22,5 +22,8 @@
     "erasableSyntaxOnly": true,
     "noFallthroughCasesInSwitch": true
   },
-  "include": ["src"]
+  //  The setup file is in here as well as src because it is where
+  //  `@testing-library/jest-dom/vitest` augments vitest's `expect`. Left out,
+  //  every `toBeInTheDocument` in the suite is a type error.
+  "include": ["src", "vitest.setup.ts"]
 }

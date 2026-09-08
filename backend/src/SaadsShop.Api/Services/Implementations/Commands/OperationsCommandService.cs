@@ -49,7 +49,7 @@ public sealed class OperationsCommandService(
 
         return result.IsSuccess && result.Data is not null
             ? OperationResult<int>.Success(result.Data.Value, result.ResponseMessage)
-            : OperationResult<int>.Failure(result.ResponseCode, result.ResponseMessage);
+            : OperationResult<int>.FromProcedureFailure(result);
     }
 
     public async Task<OperationResult<bool>> UpdateStitchingJobAsync(

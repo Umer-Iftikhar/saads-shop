@@ -34,8 +34,7 @@ public sealed class AuthQueryService(IIdentityQueryRepository repository) : IAut
         var result = await repository.GetStaffAsync(ct);
 
         if (!result.IsSuccess || result.Data is null)
-            return OperationResult<IReadOnlyList<StaffAccountResponse>>
-                .Failure(result.ResponseCode, result.ResponseMessage);
+            return OperationResult<IReadOnlyList<StaffAccountResponse>>.FromProcedureFailure(result);
 
         var now = DateTimeOffset.UtcNow;
 

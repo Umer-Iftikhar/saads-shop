@@ -27,12 +27,12 @@ Prices are in **PKR (Rs)**. The copy is English with Urdu accents (*bistar*, *pa
 | Auth | ASP.NET Identity + JWT + rotating refresh tokens + Google OAuth + TOTP 2FA | Staff only today, customer-ready schema |
 | Logging | Serilog (console + rolling file, request logging) | |
 | Caching | `IMemoryCache` with explicit invalidation on write | |
-| Tests | xUnit — unit + integration (Testcontainers MSSQL) | Integration tests run the *real* stored procedures |
+| Tests | **xUnit** (backend) + **Vitest** and Testing Library (frontend) | 422 + 288, run with `dotnet test` and `npm test` |
 
 ## Repository layout
 
 ```
-backend/          ASP.NET Core solution (Api / Application / Domain / Infrastructure + tests)
+backend/          ASP.NET Core solution (Controllers / DTOs / Services / Repositories / Middlewares + tests)
 database/         Schema, stored procedures, seed data — the source of truth for the DB
 frontend/         React + TypeScript single-page app (storefront + shop panel)
 docs/             Architecture, database contract, API reference, security notes

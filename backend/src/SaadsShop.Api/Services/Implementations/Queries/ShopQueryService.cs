@@ -23,8 +23,7 @@ public sealed class ShopQueryService(
             var result = await repository.GetPublicSettingsAsync(ct);
 
             if (!result.IsSuccess || result.Data is null)
-                return OperationResult<ShopSettingsPublicResponse>
-                    .Failure(result.ResponseCode, result.ResponseMessage);
+                return OperationResult<ShopSettingsPublicResponse>.FromProcedureFailure(result);
 
             var s = result.Data;
 
@@ -57,7 +56,7 @@ public sealed class ShopQueryService(
         var result = await repository.GetSettingsAsync(ct);
 
         if (!result.IsSuccess || result.Data is null)
-            return OperationResult<ShopSettingsResponse>.Failure(result.ResponseCode, result.ResponseMessage);
+            return OperationResult<ShopSettingsResponse>.FromProcedureFailure(result);
 
         var s = result.Data;
 
@@ -90,7 +89,7 @@ public sealed class ShopQueryService(
             var result = await repository.GetDashboardAsync(query.AsAt, ct);
 
             if (!result.IsSuccess || result.Data is null)
-                return OperationResult<DashboardResponse>.Failure(result.ResponseCode, result.ResponseMessage);
+                return OperationResult<DashboardResponse>.FromProcedureFailure(result);
 
             var d = result.Data;
 

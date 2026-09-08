@@ -18,7 +18,7 @@ public sealed class CatalogCommandService(
         var result = await repository.CreateProductAsync(request, actorUserId, ct);
 
         if (!result.IsSuccess || result.Data is null)
-            return OperationResult<int>.Failure(result.ResponseCode, result.ResponseMessage);
+            return OperationResult<int>.FromProcedureFailure(result);
 
         InvalidateCatalog();
         logger.LogInformation("Product {ProductId} created by {ActorUserId}", result.Data, actorUserId);

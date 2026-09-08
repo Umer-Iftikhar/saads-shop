@@ -52,8 +52,7 @@ public sealed class OrderQueryService(IOrderQueryRepository repository) : IOrder
         var result = await repository.QuoteSetAsync(request, ct);
 
         if (!result.IsSuccess || result.Data is null)
-            return OperationResult<SetBuilderQuoteResponse>
-                .Failure(result.ResponseCode, result.ResponseMessage);
+            return OperationResult<SetBuilderQuoteResponse>.FromProcedureFailure(result);
 
         return OperationResult<SetBuilderQuoteResponse>.Success(new SetBuilderQuoteResponse
         {
@@ -76,7 +75,7 @@ public sealed class OrderQueryService(IOrderQueryRepository repository) : IOrder
         var result = await repository.SearchAsync(query, ct);
 
         if (!result.IsSuccess || result.Data.Orders is null)
-            return OperationResult<OrderListResponse>.Failure(result.ResponseCode, result.ResponseMessage);
+            return OperationResult<OrderListResponse>.FromProcedureFailure(result);
 
         var page = result.Data.Page;
 

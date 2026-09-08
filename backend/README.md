@@ -114,9 +114,41 @@ at runtime with a 500. `Data/DateOnlyTypeHandler` teaches Dapper the conversion
 in one place, which keeps `DateOnly` in the repository signatures where it
 belongs — a date filter is a date, not an instant.
 
-## Not here yet
+## Tests
 
-Unit and integration tests are the next phase — see the repository's open pull
-requests. The concurrency and rotation checks described in
-[`../database/README.md`](../database/README.md) were run by hand against the
-procedures and become automated tests there.
+```bash
+dotnet test                     # 422 tests, ~3s
+dotnet test --filter "FullyQualifiedName~Services"
+```
+
+`tests/SaadsShop.UnitTests` covers every layer that holds a decision:
+
+| Area | What is asserted |
+| --- | --- |
+| `Controllers/` | The one mapping from `OperationResult` to HTTP — status, problem+json shape, correlation id, `Location` on a create — plus the refresh cookie's flags, and that a dead refresh token is cleared from the browser |
+| `Middlewares/` | Correlation ids in and out (including a 65-character one from a caller), the security headers, and that an unhandled exception becomes a 500 saying nothing about SQL |
+| `Services/` | The whole layer: response-code mapping, cache invalidation on write, order and stock rules, sign-in, rotation and reuse detection, TOTP and recovery codes |
+| `Validation/` | `[DateRange]`, `[NotFutureDate]`, `[ReasonableDate]` — the server half of the date rules the panel also applies |
+| `Infrastructure/` | `OperationResult` / `ProcedureResult` / `PagedResult`, the versioned cache, `RepositoryBase`'s status-row reading, the `DateOnly` handler, options binding |
+| `Common/` | Phone normalisation, which decides whether two customers are one |
+
+Doubles are NSubstitute for repositories and a real in-memory `FakeCache` — the
+caching behaviour under test *is* the interaction between reads and version
+bumps, so a mock returning canned values would assert nothing.
+
+**One product bug came out of writing these.** Fifteen services guarded a
+procedure call as `if (!result.IsSuccess || result.Data is null)` and then built
+the failure from `result.ResponseCode`. That is right when the procedure failed
+and wrong when it returned 200 with no rows: the "failure" carried a success
+code, `IsSuccess` read it back as success, and the controller answered 200 with
+an empty body. `OperationResult.FromProcedureFailure` now turns that case into a
+500 that says so, and every call site uses it.
+
+## Not covered here
+
+Repositories are exercised only as far as `RepositoryBase` — reading the status
+row, mapping multiple result sets, binding a table-valued parameter. What the
+procedures themselves do needs a database, and the concurrency and rotation
+checks in [`../database/README.md`](../database/README.md) were run by hand
+against real SQL Server rather than automated. That is the gap; it is not a
+Testcontainers suite pretending to be one.

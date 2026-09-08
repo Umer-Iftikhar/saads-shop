@@ -58,8 +58,7 @@ public sealed class CatalogQueryService(
             var result = await repository.GetProductsAsync(query, includeInactive: false, ct);
 
             if (!result.IsSuccess || result.Data.Products is null)
-                return OperationResult<PagedResponse<ProductSummaryResponse>>
-                    .Failure(result.ResponseCode, result.ResponseMessage);
+                return OperationResult<PagedResponse<ProductSummaryResponse>>.FromProcedureFailure(result);
 
             var page = new PagedResponse<ProductSummaryResponse>
             {
@@ -126,8 +125,7 @@ public sealed class CatalogQueryService(
         var result = await repository.GetProductsAsync(query, includeInactive: true, ct);
 
         if (!result.IsSuccess || result.Data.Products is null)
-            return OperationResult<PagedResponse<ProductAdminResponse>>
-                .Failure(result.ResponseCode, result.ResponseMessage);
+            return OperationResult<PagedResponse<ProductAdminResponse>>.FromProcedureFailure(result);
 
         var page = new PagedResponse<ProductAdminResponse>
         {
@@ -174,7 +172,7 @@ public sealed class CatalogQueryService(
 
             return result.IsSuccess && result.Data is not null
                 ? OperationResult<IReadOnlyList<TOut>>.Success(result.Data.Select(map).ToList())
-                : OperationResult<IReadOnlyList<TOut>>.Failure(result.ResponseCode, result.ResponseMessage);
+                : OperationResult<IReadOnlyList<TOut>>.FromProcedureFailure(result);
         });
 
     private static int TotalPages(PageInfo page)
