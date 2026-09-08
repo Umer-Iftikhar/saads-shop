@@ -1,12 +1,12 @@
 using Microsoft.AspNetCore.Mvc;
 using SaadsShop.Api.DTOs.Request;
-using SaadsShop.Api.Services.Interfaces;
+using SaadsShop.Api.Services.Interfaces.Queries;
 
 namespace SaadsShop.Api.Controllers;
 
 /// <summary>The storefront catalogue. Anonymous — browsing needs no account.</summary>
 [Route("api/catalog")]
-public sealed class CatalogController(ICatalogService catalog) : ApiControllerBase
+public sealed class CatalogController(ICatalogQueryService catalog) : ApiControllerBase
 {
     [HttpGet("products")]
     public async Task<IActionResult> GetProducts([FromQuery] ProductListQuery query, CancellationToken ct)

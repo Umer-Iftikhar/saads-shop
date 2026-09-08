@@ -2,14 +2,15 @@ using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
 using SaadsShop.Api.Constants;
 using SaadsShop.Api.DTOs.Request;
-using SaadsShop.Api.Services.Interfaces;
+using SaadsShop.Api.Services.Interfaces.Commands;
+using SaadsShop.Api.Services.Interfaces.Queries;
 
 namespace SaadsShop.Api.Controllers;
 
 /// <summary>The overview screen.</summary>
 [Route("api/admin/dashboard")]
 [Authorize(Policy = AuthPolicies.StaffOnly)]
-public sealed class AdminDashboardController(IShopService shop) : ApiControllerBase
+public sealed class AdminDashboardController(IShopQueryService shop) : ApiControllerBase
 {
     [HttpGet]
     public async Task<IActionResult> Get([FromQuery] DashboardQuery query, CancellationToken ct)
@@ -26,15 +27,17 @@ public sealed class AdminDashboardController(IShopService shop) : ApiControllerB
 /// </remarks>
 [Route("api/admin/settings")]
 [Authorize(Policy = AuthPolicies.OwnerOnly)]
-public sealed class AdminSettingsController(IShopService shop) : ApiControllerBase
+public sealed class AdminSettingsController(
+    IShopQueryService reads,
+    IShopCommandService writes) : ApiControllerBase
 {
     [HttpGet]
     public async Task<IActionResult> Get(CancellationToken ct)
-        => FromResult(await shop.GetSettingsAsync(ct));
+        => FromResult(await reads.GetSettingsAsync(ct));
 
     [HttpPut]
     [Authorize(Policy = AuthPolicies.MfaVerified)]
     public async Task<IActionResult> Update([FromBody] SettingsUpdateRequest request, CancellationToken ct)
-        => FromResult(await shop.UpdateSettingsAsync(request, CurrentUserId, ct),
+        => FromResult(await writes.UpdateSettingsAsync(request, CurrentUserId, ct),
                       StatusCodes.Status204NoContent);
 }

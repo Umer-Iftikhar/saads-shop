@@ -2,7 +2,8 @@ using Microsoft.AspNetCore.Mvc;
 using Microsoft.AspNetCore.RateLimiting;
 using SaadsShop.Api.Constants;
 using SaadsShop.Api.DTOs.Request;
-using SaadsShop.Api.Services.Interfaces;
+using SaadsShop.Api.Services.Interfaces.Commands;
+using SaadsShop.Api.Services.Interfaces.Queries;
 
 namespace SaadsShop.Api.Controllers;
 
@@ -11,13 +12,15 @@ namespace SaadsShop.Api.Controllers;
 /// WhatsApp orders and reserve-in-shop, none of which need an account.
 /// </summary>
 [Route("api/orders")]
-public sealed class OrdersController(IOrderService orders) : ApiControllerBase
+public sealed class OrdersController(
+    IOrderQueryService reads,
+    IOrderCommandService writes) : ApiControllerBase
 {
     [HttpPost]
     [EnableRateLimiting(RateLimitPolicies.PlaceOrder)]
     public async Task<IActionResult> Place([FromBody] PlaceOrderRequest request, CancellationToken ct)
     {
-        var result = await orders.PlaceOrderAsync(request, ct);
+        var result = await writes.PlaceOrderAsync(request, ct);
 
         return result.IsSuccess
             ? CreatedFromResult(result, $"/api/orders/{result.Value!.Reference}")
@@ -35,12 +38,12 @@ public sealed class OrdersController(IOrderService orders) : ApiControllerBase
     [HttpGet("{reference}")]
     [EnableRateLimiting(RateLimitPolicies.TrackOrder)]
     public async Task<IActionResult> Track(string reference, [FromQuery] string phone, CancellationToken ct)
-        => FromResult(await orders.TrackAsync(new TrackOrderQuery { Reference = reference, Phone = phone }, ct));
+        => FromResult(await reads.TrackAsync(new TrackOrderQuery { Reference = reference, Phone = phone }, ct));
 }
 
 /// <summary>Prices a bistar + parde + cushion combination from the set builder.</summary>
 [Route("api/set-builder")]
-public sealed class SetBuilderController(IOrderService orders) : ApiControllerBase
+public sealed class SetBuilderController(IOrderQueryService orders) : ApiControllerBase
 {
     [HttpPost("quote")]
     public async Task<IActionResult> Quote([FromBody] SetBuilderQuoteRequest request, CancellationToken ct)
@@ -49,7 +52,7 @@ public sealed class SetBuilderController(IOrderService orders) : ApiControllerBa
 
 /// <summary>The storefront's view of the shop: address, hours, delivery, payment methods.</summary>
 [Route("api/shop")]
-public sealed class ShopController(IShopService shop) : ApiControllerBase
+public sealed class ShopController(IShopQueryService shop) : ApiControllerBase
 {
     [HttpGet("settings")]
     public async Task<IActionResult> GetSettings(CancellationToken ct)

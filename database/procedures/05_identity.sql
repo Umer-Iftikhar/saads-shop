@@ -614,10 +614,20 @@ BEGIN
         SELECT @ResponseCode = 500, @ResponseMessage = N'Could not refresh the session.';
     END CATCH
 
-    /*  1 — who the new token belongs to (empty on every failure path), plus
-        the reuse flag so the API can log the security event distinctly.     */
-    SELECT  u.Id AS UserId, u.Email, u.FullName, @NewId AS RefreshTokenId, @ReuseDetected AS ReuseDetected
-    FROM    dbo.Users AS u WHERE u.Id = @UserId;
+    /*  1 — who the new token belongs to, plus the reuse flag so the API can
+        log the security event distinctly.
+
+        Always exactly one row, even on the failure paths, where @UserId is
+        deliberately NULL and the user columns come back NULL with it. It was
+        written as a plain SELECT ... FROM dbo.Users WHERE Id = @UserId, which
+        returns NO row when @UserId is NULL — and the replay path is precisely
+        the one that sets @UserId to NULL. The reuse flag therefore never
+        reached the API, and the security warning it gates was unreachable.
+        See RefreshTokenTests.                                                */
+    SELECT  u.Id AS UserId, u.Email, u.FullName,
+            @NewId AS RefreshTokenId, @ReuseDetected AS ReuseDetected
+    FROM        (SELECT 1 AS Present) AS always
+    LEFT JOIN   dbo.Users AS u ON u.Id = @UserId;
 
     /*  2 — roles for the new access token                                   */
     SELECT  r.Name

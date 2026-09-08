@@ -3,9 +3,11 @@
 ASP.NET Core 10 Web API. Dapper over stored procedures, JWT with rotating
 refresh tokens, TOTP two-factor, Google OAuth, Serilog, `IMemoryCache`.
 
-Layer boundaries and the reasoning behind them are in
-[`../docs/architecture.md`](../docs/architecture.md); the database contract is in
-[`../docs/database.md`](../docs/database.md).
+Reads and writes are separate interfaces at every layer — the storefront's
+catalogue controller holds a type with no method that can change a product. Layer
+boundaries and the reasoning behind them, including why this is not MediatR, are
+in [`../docs/architecture.md`](../docs/architecture.md); the database contract is
+in [`../docs/database.md`](../docs/database.md).
 
 ## Running it
 
@@ -37,8 +39,8 @@ on password + 2FA, with `/api/auth/google` answering 404.
 ```
 Controllers/    thin — bind, authorise, call a service, map the result
 DTOs/           Request / Response / Internal
-Services/       Interfaces + Implementations — business rules, caching
-Repositories/   Interfaces + Implementations — one procedure per method
+Services/       Interfaces + Implementations, each split Queries / Commands
+Repositories/   Interfaces + Implementations, each split Queries / Commands
 Models/         POCOs Dapper materialises
 Constants/      procedure names, table types, cache keys, roles, policies
 Validation/     custom validation attributes
@@ -112,9 +114,76 @@ at runtime with a 500. `Data/DateOnlyTypeHandler` teaches Dapper the conversion
 in one place, which keeps `DateOnly` in the repository signatures where it
 belongs — a date filter is a date, not an instant.
 
-## Not here yet
+## Tests
 
-Unit and integration tests are the next phase — see the repository's open pull
-requests. The concurrency and rotation checks described in
-[`../database/README.md`](../database/README.md) were run by hand against the
-procedures and become automated tests there.
+```bash
+dotnet test                     # 422 tests, ~3s
+dotnet test --filter "FullyQualifiedName~Services"
+```
+
+`tests/SaadsShop.UnitTests` covers every layer that holds a decision:
+
+| Area | What is asserted |
+| --- | --- |
+| `Controllers/` | The one mapping from `OperationResult` to HTTP — status, problem+json shape, correlation id, `Location` on a create — plus the refresh cookie's flags, and that a dead refresh token is cleared from the browser |
+| `Middlewares/` | Correlation ids in and out (including a 65-character one from a caller), the security headers, and that an unhandled exception becomes a 500 saying nothing about SQL |
+| `Services/` | The whole layer: response-code mapping, cache invalidation on write, order and stock rules, sign-in, rotation and reuse detection, TOTP and recovery codes |
+| `Validation/` | `[DateRange]`, `[NotFutureDate]`, `[ReasonableDate]` — the server half of the date rules the panel also applies |
+| `Infrastructure/` | `OperationResult` / `ProcedureResult` / `PagedResult`, the versioned cache, `RepositoryBase`'s status-row reading, the `DateOnly` handler, options binding |
+| `Common/` | Phone normalisation, which decides whether two customers are one |
+
+Doubles are NSubstitute for repositories and a real in-memory `FakeCache` — the
+caching behaviour under test *is* the interaction between reads and version
+bumps, so a mock returning canned values would assert nothing.
+
+**One product bug came out of writing these.** Fifteen services guarded a
+procedure call as `if (!result.IsSuccess || result.Data is null)` and then built
+the failure from `result.ResponseCode`. That is right when the procedure failed
+and wrong when it returned 200 with no rows: the "failure" carried a success
+code, `IsSuccess` read it back as success, and the controller answered 200 with
+an empty body. `OperationResult.FromProcedureFailure` now turns that case into a
+500 that says so, and every call site uses it.
+
+## Integration tests
+
+```bash
+dotnet test tests/SaadsShop.IntegrationTests    # 110 tests
+```
+
+The unit suite proves the C# reads a procedure's answer correctly. Nothing in
+it can prove the procedure gives the right answer, because there is no
+database — and in this project the rules live in the procedures. So this suite
+starts SQL Server in a container, applies the real files from `database/` in
+the order `apply.sh` uses, and calls the real repositories.
+
+| Area | What is asserted |
+| --- | --- |
+| Checkout concurrency | Eight buyers race for one piece and exactly one wins; twenty buyers against five pieces sell exactly five and stock never goes negative; a part-available order rolls back whole; six simultaneous orders from one phone make one customer, not six |
+| Refresh tokens | Rotation, reuse detection, and that a replay revokes the whole family while leaving other devices signed in — plus ten tabs refreshing at once never leaving two usable tokens |
+| Order lifecycle | References unique under concurrency, prices taken from the shop and not the browser, a line keeping the name and price it sold at after the product is renamed, status moves recorded with who made them, and tracking that needs the phone as well as the reference |
+| Catalogue | Slugs, name conflicts, cloth sets replaced wholesale rather than merged, and removal that hides rather than deletes |
+| The date range | The third layer of the rule the browser and `[DateRange]` also apply |
+| Deployment | The scripts apply to an empty server; every name in `StoredProcedures` exists; nothing in the database is uncalled; no procedure returns a code the API cannot map; no procedure catches an error without logging it |
+
+Docker is required. Set `SAADSSHOP_TEST_SQL` to a connection string to run
+against a server you already have instead, and no container is started.
+
+**Two defects came out of writing these**, both invisible without a database:
+
+1. **Refresh-token reuse could never be reported.** On the replay path
+   `usp_RefreshToken_Redeem` sets `@UserId = NULL` and then selects the reuse
+   flag `FROM dbo.Users WHERE Id = @UserId` — which returns *no row*. The flag
+   never reached the API, so the `LogWarning` in `AuthCommandService` that
+   exists precisely to record a stolen token was unreachable. The family was
+   still revoked correctly, so the hole was in the alerting, not the defence.
+2. **The date range was validated twice, not three times.** The procedure
+   checked only that the start was before the end. Nothing in it refused a
+   future date or a range longer than a year, though both READMEs and
+   `docs/database.md` describe three layers applying the same rules.
+
+## Not covered here
+
+The API's HTTP surface. These tests call repositories, which is where SQL
+begins; routing, model binding and the auth middleware are covered by the unit
+suite instead. An end-to-end suite over `WebApplicationFactory` would close
+that gap and does not exist yet.

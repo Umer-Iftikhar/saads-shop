@@ -12,10 +12,16 @@ using SaadsShop.Api.Configuration;
 using SaadsShop.Api.Constants;
 using SaadsShop.Api.Data;
 using SaadsShop.Api.Models;
-using SaadsShop.Api.Repositories.Implementations;
-using SaadsShop.Api.Repositories.Interfaces;
+using SaadsShop.Api.Repositories.Implementations.Commands;
+using SaadsShop.Api.Repositories.Implementations.Queries;
+using SaadsShop.Api.Repositories.Interfaces.Commands;
+using SaadsShop.Api.Repositories.Interfaces.Queries;
 using SaadsShop.Api.Services.Implementations;
+using SaadsShop.Api.Services.Implementations.Commands;
+using SaadsShop.Api.Services.Implementations.Queries;
 using SaadsShop.Api.Services.Interfaces;
+using SaadsShop.Api.Services.Interfaces.Commands;
+using SaadsShop.Api.Services.Interfaces.Queries;
 
 namespace SaadsShop.Api.Extensions;
 
@@ -42,6 +48,12 @@ public static class ServiceCollectionExtensions
                 .ValidateDataAnnotations()
                 .Validate(o => o.AllowedOrigins.All(origin => !origin.Contains('*')),
                     "CORS origins must be listed explicitly. '*' with credentials is refused by browsers and defeats the point.")
+                //  A malformed origin never matches anything, and the only
+                //  symptom is a CORS error in someone else's browser console.
+                //  Fail at boot, where the message can name the entry.
+                .Validate(o => o.AllowedOrigins.All(AuthOptions.IsWellFormedOrigin),
+                    "Each CORS origin must be scheme://host[:port] with no trailing slash and no path — " +
+                    "an Origin header is matched as an exact string, so \"https://example.com/\" matches nothing.")
                 .ValidateOnStart();
 
         services.AddOptions<GoogleAuthOptions>()
@@ -55,23 +67,41 @@ public static class ServiceCollectionExtensions
     {
         //  Before any repository runs: SqlClient refuses a DateOnly parameter,
         //  and the failure surfaces at the first query that carries a date.
-        SqlMapper.AddTypeHandler(new DateOnlyTypeHandler());
+        //  The integration tests call the same method, so the two cannot drift.
+        DapperTypeHandlers.Register();
 
         services.AddSingleton<ISqlConnectionFactory, SqlConnectionFactory>();
 
-        // Scoped: one instance per request, matching the lifetime of the
-        // connections and the cancellation token they run under.
-        services.AddScoped<ICatalogRepository,    CatalogRepository>();
-        services.AddScoped<IOrderRepository,      OrderRepository>();
-        services.AddScoped<IOperationsRepository, OperationsRepository>();
-        services.AddScoped<IShopRepository,       ShopRepository>();
-        services.AddScoped<IIdentityRepository,   IdentityRepository>();
+        //  Reads and writes are registered as separate pairs the whole way
+        //  down. A screen that only shows the catalogue asks for the query
+        //  service and is then incapable of changing it — which is a stronger
+        //  guarantee than a comment saying it should not.
+        //
+        //  Scoped: one instance per request, matching the lifetime of the
+        //  connections and the cancellation token they run under.
+        services.AddScoped<ICatalogQueryRepository,      CatalogQueryRepository>();
+        services.AddScoped<IOrderQueryRepository,        OrderQueryRepository>();
+        services.AddScoped<IOperationsQueryRepository,   OperationsQueryRepository>();
+        services.AddScoped<IShopQueryRepository,         ShopQueryRepository>();
+        services.AddScoped<IIdentityQueryRepository,     IdentityQueryRepository>();
 
-        services.AddScoped<ICatalogService,    CatalogService>();
-        services.AddScoped<IOrderService,      OrderService>();
-        services.AddScoped<IOperationsService, OperationsService>();
-        services.AddScoped<IShopService,       ShopService>();
-        services.AddScoped<IAuthService,       AuthService>();
+        services.AddScoped<ICatalogCommandRepository,    CatalogCommandRepository>();
+        services.AddScoped<IOrderCommandRepository,      OrderCommandRepository>();
+        services.AddScoped<IOperationsCommandRepository, OperationsCommandRepository>();
+        services.AddScoped<IShopCommandRepository,       ShopCommandRepository>();
+        services.AddScoped<IIdentityCommandRepository,   IdentityCommandRepository>();
+
+        services.AddScoped<ICatalogQueryService,      CatalogQueryService>();
+        services.AddScoped<IOrderQueryService,        OrderQueryService>();
+        services.AddScoped<IOperationsQueryService,   OperationsQueryService>();
+        services.AddScoped<IShopQueryService,         ShopQueryService>();
+        services.AddScoped<IAuthQueryService,         AuthQueryService>();
+
+        services.AddScoped<ICatalogCommandService,    CatalogCommandService>();
+        services.AddScoped<IOrderCommandService,      OrderCommandService>();
+        services.AddScoped<IOperationsCommandService, OperationsCommandService>();
+        services.AddScoped<IShopCommandService,       ShopCommandService>();
+        services.AddScoped<IAuthCommandService,       AuthCommandService>();
 
         // Stateless and cheap to share.
         services.AddSingleton<ITokenService,     TokenService>();
@@ -285,7 +315,15 @@ public static class ServiceCollectionExtensions
                 .AllowAnyHeader()
                 .AllowAnyMethod()
                 .AllowCredentials()
-                .WithExposedHeaders(Middlewares.CorrelationIdMiddleware.HeaderName)));
+                // The correlation id is the one header a client needs to read
+                // back; without this the browser hides it from JavaScript.
+                .WithExposedHeaders(Middlewares.CorrelationIdMiddleware.HeaderName)
+                //  Without a max-age every request with a JSON body or an
+                //  Authorization header preflights, doubling the round trips on
+                //  a connection that may already be slow. Ten minutes is short
+                //  enough that changing the policy takes effect promptly and is
+                //  what Chrome caps browsers at anyway.
+                .SetPreflightMaxAge(TimeSpan.FromMinutes(10))));
 
         return services;
     }

@@ -50,6 +50,47 @@ and both parties are logged out. Theft becomes a detectable event instead of a s
 indefinite session. Rotation happens inside a transaction so two concurrent refreshes
 cannot both succeed.
 
+#### The 20-second rotation window
+
+That rule is right for a token replayed an hour later and wrong for two things that happen
+constantly:
+
+- **Two tabs refresh at the same moment.** One wins; the other arrives with a token the
+  first has just spent.
+- **A response is lost.** The server rotated, the reply never arrived, and the client
+  retries with the only token it still holds.
+
+Neither is theft, and under the bare rule both sign the shop out. So one rotation answers
+everyone presenting that token for the next **20 seconds** (`Jwt:RefreshRotationGraceSeconds`,
+0 to disable). Concurrent callers share the single in-flight rotation rather than starting
+two; a caller arriving shortly after is handed the same tokens the first one got.
+
+The database is untouched by this — it keeps its strict one-use rule, and the window lives
+in `AuthCommandService`, keyed by the *hash* of the presented token.
+
+What it costs: an attacker replaying a stolen token inside those 20 seconds receives the
+same tokens the victim just did, rather than tripping the alarm. Detection is delayed, not
+lost — the moment either party rotates again, the other's copy is a spent token and the
+family burns. Twenty seconds is chosen to cover a round trip on a slow connection and
+nothing more.
+
+It lives and dies with the process. A restart in the middle of a race drops the window and
+the second caller falls through to the database — safe, just a re-login. That is the whole
+failure mode: the API is one process serving one shop, and the window is deliberately
+smaller than the problem it would take to need anything more.
+
+Measured against the running API, eight refreshes fired at once on one token:
+
+| | grace off | grace on (20s) |
+| --- | --- | --- |
+| Statuses | `401` × 7, `200` × 1 | `200` × 8 |
+| Rotations | 2 | **1** |
+| Family afterwards | revoked — everyone signed out | alive |
+| Genuine replay after the window | 401 + family revoked | 401 + family revoked |
+
+The last row is the one that matters: the window does not weaken reuse detection, it only
+stops it firing on the shop's own traffic.
+
 Refresh tokens are delivered as **`HttpOnly`, `Secure`, `SameSite=Strict`** cookies rather
 than JSON, which puts them out of reach of XSS. The access token lives in memory in the SPA
 — never `localStorage`.
@@ -105,7 +146,43 @@ Pakistani phone numbers are normalised and validated against `^(\+92|0)3\d{9}$`.
   A restrictive Content-Security-Policy is served, with no `unsafe-inline` for scripts.
 - **CSRF** — the API is stateless and reads bearer tokens from the `Authorization` header,
   which is not sent automatically cross-origin. The refresh cookie is `SameSite=Strict`.
-- **CORS** — an explicit allow-list of origins with credentials enabled. Never `*`.
+- **CORS** — an explicit allow-list of origins with credentials enabled. Never `*`, which
+  browsers refuse alongside credentials anyway. See below.
+
+## CORS
+
+The policy is one allow-list, applied by the default policy before authentication so a
+rejected preflight never reaches an endpoint:
+
+```csharp
+.WithOrigins(auth.AllowedOrigins)   // explicit; empty means same-origin only
+.AllowAnyHeader().AllowAnyMethod()
+.AllowCredentials()                 // the refresh cookie rides on these requests
+.WithExposedHeaders("X-Correlation-Id")
+.SetPreflightMaxAge(TimeSpan.FromMinutes(10))
+```
+
+Three things worth knowing:
+
+**An Origin is matched as an exact string.** `https://saadsshop.pk/` — with the trailing
+slash — matches nothing, and the only symptom is a CORS error in a browser console the
+server never sees. Startup validation now rejects any entry that is not bare
+`scheme://host[:port]`, so a typo fails at boot with a message naming the rule instead of
+becoming someone else's afternoon. `http://localhost` and `http://127.0.0.1` are likewise
+different origins; both are listed in development.
+
+**A refused origin still gets a normal response from `curl`.** CORS is enforced by the
+browser, not the server: the API answers, omits the `Access-Control-Allow-Origin` header,
+and the browser discards the response. Testing with `curl` and seeing `200` is not a hole —
+the absence of the header is the control.
+
+**CORS and the refresh cookie have to agree.** The cookie is `SameSite=Strict`, so a
+front end on a genuinely different site cannot send it however permissive CORS is. The
+supported deployments are same-origin (the SPA served by, or proxied through, the API's
+origin — what development does through Vite) or same-site (`saadsshop.pk` calling
+`api.saadsshop.pk`, where Strict still applies). Hosting the SPA on an unrelated domain
+means relaxing `RefreshCookieSameSiteStrict`, and that is a deliberate decision with its
+own CSRF cost, not a configuration detail.
 
 ## Transport and headers
 

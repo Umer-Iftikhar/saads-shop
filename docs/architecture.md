@@ -7,6 +7,7 @@
 │  React + TypeScript (Vite)  │  HTTPS │        ASP.NET Core Web API          │
 │                             │ ─────► │                                      │
 │  storefront/  shop panel/   │  JWT   │  Controllers → Services → Repos      │
+│                             │        │      (query / command at each step)  │
 └─────────────────────────────┘        └───────────────┬──────────────────────┘
                                                        │ Dapper, stored procs only
                                                        ▼
@@ -28,12 +29,20 @@ backend/src/SaadsShop.Api/
 │   ├── Request/       what comes in, with validation attributes
 │   ├── Response/      what goes out; never a model straight from the database
 │   └── Internal/      ProcedureResult, OperationResult, PagedResult — never on the wire
-├── Services/
+├── Services/          business rules, caching, orchestration
 │   ├── Interfaces/
-│   └── Implementations/   business rules, caching, orchestration
-├── Repositories/
+│   │   ├── Queries/       read contracts  (ICatalogQueryService…)
+│   │   └── Commands/      write contracts (ICatalogCommandService…)
+│   └── Implementations/
+│       ├── Queries/
+│       └── Commands/
+├── Repositories/      one stored procedure per method, via Dapper
 │   ├── Interfaces/
-│   └── Implementations/   one stored procedure per method, via Dapper
+│   │   ├── Queries/
+│   │   └── Commands/
+│   └── Implementations/
+│       ├── Queries/
+│       └── Commands/
 ├── Models/            POCOs Dapper materialises from result sets
 ├── Constants/         procedure names, table types, cache keys, roles, policies
 ├── Validation/        custom validation attributes (DateRange, NotFutureDate…)
@@ -56,6 +65,54 @@ than the stock count, because how many are left is the shop's business.
 Reusing one type for both is how a model ends up quietly serialising a password
 hash. `Internal` holds the types that never cross the wire at all.
 
+### CQRS: reads and writes are separate all the way down
+
+Every area of the system — catalogue, orders, operations, shop, identity — has a
+**query** interface and a **command** interface, at both the service and the
+repository layer, and they are registered separately. A controller asks for what
+it actually needs:
+
+```csharp
+public sealed class CatalogController(ICatalogQueryService catalog)      // storefront: reads only
+public sealed class AdminCatalogController(
+    ICatalogQueryService reads,
+    ICatalogCommandService writes)                                        // the editor: both
+```
+
+The storefront's catalogue controller is *incapable* of changing a product —
+not by convention, but because the type it holds has no method that does. That
+is a stronger guarantee than a comment, and it is the point of the split.
+
+**The rule is one-directional: a command may read, a query may never write.**
+Signing in has to find the account before it can decide anything, so
+`AuthCommandService` takes both repositories. Nothing on the query side takes a
+command repository, and that is what makes the read path safe to cache.
+
+Two things fall naturally out of the seam:
+
+- **Cache invalidation has one home.** Only command services bump a version
+  counter, and only after a write has actually succeeded. Query services read
+  through keys derived from that counter and never think about invalidation at
+  all — a write happened, the version moved, the old keys stopped matching.
+- **The two sides have genuinely different shapes.** Reads are cached, paged and
+  projected for a particular audience (`ProductSummaryResponse` says whether an
+  item is in stock; `ProductAdminResponse` says how many are left). Writes are
+  single, audited and take the acting user. Forcing both through one interface
+  was hiding that.
+
+Some methods are writes that a reader would not expect: a failed sign-in records
+an attempt, a refresh rotates a token, a recovery code is spent. Putting them on
+the command side says so out loud.
+
+**Why not MediatR.** The usual .NET reading of CQRS is a handler per use case
+dispatched through a mediator. That buys decoupling this project does not need —
+there is one caller per operation, and the indirection would put a runtime
+lookup between a controller and the code it obviously calls. The layered folders
+were also an explicit requirement here. Separate query and command interfaces
+give the guarantee that matters (a reader cannot write) without the ceremony; if
+pipeline behaviours are ever wanted, they can be added as decorators over these
+same interfaces.
+
 ### Layer rules
 
 - Controllers never touch a repository, and never branch on a response code —
@@ -66,7 +123,8 @@ hash. `Internal` holds the types that never cross the wire at all.
 - Nothing outside `Constants/` contains a procedure name or a table-type name.
 
 Services take repository *interfaces*, so a service can be unit-tested with a
-fake and no database at all.
+fake and no database at all — and a query service can only be handed a fake that
+reads.
 
 ## Request flow
 

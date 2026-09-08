@@ -89,6 +89,29 @@ public sealed class OperationResult<T>
     public static OperationResult<T> FromFailure<TOther>(OperationResult<TOther> other)
         => new(default, other.ResponseCode, other.Message, other.Errors);
 
+    /// <summary>
+    /// A failure derived from a procedure result, for the guard every service
+    /// writes as <c>if (!result.IsSuccess || result.Data is null)</c>.
+    /// </summary>
+    /// <remarks>
+    /// The second half of that guard is the reason this exists. Copying
+    /// <c>result.ResponseCode</c> into a failure is right when the procedure
+    /// actually failed and wrong when it reported 200 and simply returned no
+    /// rows — that builds a "failure" carrying a success code, which
+    /// <see cref="IsSuccess"/> then reads as success and the controller answers
+    /// 200 with an empty body.
+    ///
+    /// A procedure that says OK and hands back nothing is a server-side
+    /// inconsistency, so it becomes a 500 with a message that says so rather
+    /// than a 200 pretending everything is fine.
+    /// </remarks>
+    public static OperationResult<T> FromProcedureFailure<TOther>(
+        ProcedureResult<TOther> procedure,
+        string missingPayloadMessage = "The shop's database answered without the data that was asked for.")
+        => procedure.IsSuccess
+            ? new(default, ResponseCodes.ServerError, missingPayloadMessage)
+            : new(default, procedure.ResponseCode, procedure.ResponseMessage);
+
     public static OperationResult<T> FromProcedure(ProcedureResult<T> result)
         => result.IsSuccess
             ? new OperationResult<T>(result.Data, ResponseCodes.Success, result.ResponseMessage)
